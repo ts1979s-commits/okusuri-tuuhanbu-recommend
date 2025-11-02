@@ -128,6 +128,8 @@ class RecommendationEngine:
     
     def __init__(self):
         self.rag_system = FAISSRAGSystem()
+        # インデックスをロードまたは作成
+        self.rag_system.load_or_create_index()
         self.query_analyzer = QueryAnalyzer()
         
     def recommend_products(

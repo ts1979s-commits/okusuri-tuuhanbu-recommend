@@ -124,6 +124,11 @@ class FAISSRAGSystem:
         results = []
         query_lower = query.lower().strip()
         logger.info(f"キーワード完全一致検索: '{query_lower}'")
+        logger.info(f"検索対象データ数: {len(self.metadata_list)}")
+        
+        if not self.metadata_list:
+            logger.warning("メタデータリストが空です")
+            return results
         
         for i, metadata in enumerate(self.metadata_list):
             # 検索対象フィールド
@@ -162,6 +167,14 @@ class FAISSRAGSystem:
                     elif current_score == match_score:
                         match_fields.append(field_name)
                     logger.info(f"単語一致: {metadata.get('name', '')} [{field_name}] スコア:{current_score}")
+                
+                # 3. 部分一致（特に有効成分や商品名で重要）
+                elif query_lower in field_lower and field_name in ['ingredient', 'name']:
+                    current_score = self._get_field_score(field_name) * 0.8  # 少し低めのスコア
+                    if current_score > match_score:
+                        match_score = current_score
+                        match_fields = [field_name]
+                    logger.info(f"部分一致: {metadata.get('name', '')} [{field_name}] スコア:{current_score}")
             
             # マッチした場合のみ結果に追加
             if match_score > 0:
