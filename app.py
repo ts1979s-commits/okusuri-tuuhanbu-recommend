@@ -225,18 +225,21 @@ def main():
     
     # 検索例を表示
     with st.expander("💡 検索例", expanded=False):
-        st.write("**症状での検索:**")
-        st.write("- 頭痛がひどいので何か良い薬はありますか")
-        st.write("- 風邪を引いたみたいです")
-        st.write("- 胃が痛いです")
+        st.write("**症状での検索例:**")
+        st.write("- 髪の毛が薄くなってきた気がする")
+        st.write("- 肌荒れがひどい、ニキビが治らない")
+        st.write("- ダイエットしても体重が落ちない")
         
-        st.write("**商品名での検索:**")
-        st.write("- ロキソニン")
-        st.write("- バファリン")
+        st.write("**商品名での検索例:**")
+        st.write("- カマグラゴールド")
+        st.write("- フィナクス+ミノクソール")
+        st.write("- オルリガル")
         
-        st.write("**カテゴリでの検索:**")
-        st.write("- 風邪薬を探しています")
-        st.write("- ビタミン剤が欲しいです")
+        st.write("**カテゴリでの検索例:**")
+        st.write("- ED治療薬を探しています")
+        st.write("- AGA治療薬が欲しいです")
+        st.write("- ニキビ治療薬を教えてください")
+        st.write("- ダイエットサプリを見たいです")
     
     # 検索フォーム
     user_query = st.text_input(
