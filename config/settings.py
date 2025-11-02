@@ -22,10 +22,6 @@ class Settings:
         self.OKUSURI_BASE_URL = "https://okusuritsuhan.shop/"
         self.OKUSURI_COLUMN_URL = "https://okusuritsuhan.shop/column/"
         
-        # ChromaDB設定
-        self.CHROMA_DB_PATH = "./data/chroma_db"
-        self.COLLECTION_NAME = "okusuri_products"
-        
         # スクレイピング設定
         self.REQUEST_DELAY = 1.0  # リクエスト間隔（秒）
         self.MAX_PAGES = 100  # 最大ページ数
