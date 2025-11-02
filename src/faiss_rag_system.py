@@ -277,20 +277,29 @@ class FAISSRAGSystem:
             # 1. 自然言語から検索キーワードを抽出
             extracted_keywords = self._extract_keywords_from_query(query)
             
-            # 2. 抽出されたキーワードで完全一致検索を実行
+            # 2. クエリから対象カテゴリーを特定
+            target_category = self._get_target_category_from_query(query)
+            logger.info(f"対象カテゴリー: {target_category}")
+            
+            # 3. 抽出されたキーワードで完全一致検索を実行
             exact_match_results = []
             for keyword in extracted_keywords:
                 keyword_results = self._exact_match_search(keyword, top_k)
                 exact_match_results.extend(keyword_results)
             
-            # 3. 元のクエリでも完全一致検索を実行
+            # 4. 元のクエリでも完全一致検索を実行
             original_exact_results = self._exact_match_search(query.strip(), top_k)
             exact_match_results.extend(original_exact_results)
             
-            # 4. ベクトル検索を実行
-            vector_search_results = self._vector_search(query, top_k)
+            # 5. ベクトル検索を実行（カテゴリー情報を渡す）
+            vector_search_results = self._vector_search(query, top_k, target_category)
             
-            # 5. 結果をマージして重複を除去し、CSV順でソート
+            # 6. カテゴリーフィルタリングを適用
+            if target_category:
+                exact_match_results = self._filter_by_category(exact_match_results, target_category)
+                vector_search_results = self._filter_by_category(vector_search_results, target_category)
+            
+            # 7. 結果をマージして重複を除去し、CSV順でソート
             combined_results = self._merge_and_sort_results(
                 exact_match_results, vector_search_results, top_k
             )
@@ -320,6 +329,14 @@ class FAISSRAGSystem:
             'ED改善', '発毛促進', 'AGA改善', '美白', 'ニキビ治療', '不感症改善',
             'バストアップ', 'まつ毛育毛', 'むくみ改善', '便秘改善', '細菌感染症治療'
         ]
+        
+        # カテゴリーと症状のマッピング
+        category_symptom_mapping = {
+            'aga': ['AGA治療薬', 'AGA改善', '発毛促進', 'ミノキシジル', 'フィナステリド', 'デュタステリド'],
+            'ed': ['ED治療薬', 'ED改善', 'シルデナフィル', 'タダラフィル', 'バルデナフィル', 'アバナフィル', 'ウデナフィル'],
+            '美容': ['美容', '美白', 'まつ毛育毛', 'ニキビ治療'],
+            'ダイエット': ['ダイエット', 'オルリスタット', 'トラセミド'],
+        }
         
         # 既知のカテゴリリスト
         known_categories = [
@@ -390,6 +407,51 @@ class FAISSRAGSystem:
         
         return list(set(keywords))  # 重複を除去して返す
     
+    def _get_target_category_from_query(self, query: str) -> Optional[str]:
+        """クエリから対象カテゴリーを特定"""
+        query_lower = query.lower().strip()
+        
+        # カテゴリーマッピング
+        category_mapping = {
+            'aga': ['aga', '薄毛', 'はげ', '抜け毛', '発毛', 'フィナステリド', 'ミノキシジル', 'デュタステリド', 'フィナクス', 'ミノクソール', 'デュタストロン'],
+            'ed': ['ed', '勃起不全', 'インポテンツ', 'シルデナフィル', 'タダラフィル', 'バルデナフィル', 'アバナフィル', 'ウデナフィル', 'カマグラ', 'タダライズ', 'バリフ', 'アバナ', 'ザイスマ'],
+            '美容': ['美容', '美白', 'ニキビ', 'まつ毛', 'スキンケア'],
+            'ダイエット': ['ダイエット', '減量', 'オルリスタット', 'むくみ'],
+        }
+        
+        # クエリと各カテゴリーキーワードをマッチング
+        for category, keywords in category_mapping.items():
+            for keyword in keywords:
+                if keyword in query_lower:
+                    return category
+        
+        return None
+    
+    def _filter_by_category(self, results: List[SearchResult], target_category: str) -> List[SearchResult]:
+        """カテゴリーでフィルタリング"""
+        if not target_category:
+            return results
+        
+        filtered_results = []
+        for result in results:
+            category = result.metadata.get('category', '').lower()
+            
+            # カテゴリーマッチング
+            if target_category == 'aga' and 'aga' in category:
+                filtered_results.append(result)
+            elif target_category == 'ed' and 'ed' in category:
+                filtered_results.append(result)
+            elif target_category == '美容' and '美容' in category:
+                filtered_results.append(result)
+            elif target_category == 'ダイエット' and 'ダイエット' in category:
+                filtered_results.append(result)
+            else:
+                # その他のカテゴリーや一般検索の場合は含める
+                if target_category not in ['aga', 'ed']:
+                    filtered_results.append(result)
+        
+        return filtered_results
+    
     def _exact_match_search(self, query: str, top_k: int) -> List[SearchResult]:
         """完全一致検索（厳密な単語マッチング）"""
         results = []
@@ -458,8 +520,8 @@ class FAISSRAGSystem:
         results.sort(key=lambda x: x.metadata.get('csv_order', 999))
         return results[:top_k]
     
-    def _vector_search(self, query: str, top_k: int) -> List[SearchResult]:
-        """従来のベクトル検索"""
+    def _vector_search(self, query: str, top_k: int, target_category: Optional[str] = None) -> List[SearchResult]:
+        """従来のベクトル検索（カテゴリーボーナス付き）"""
         try:
             # クエリの埋め込みベクトルを取得
             query_embedding = self.get_embedding(query)
@@ -472,7 +534,7 @@ class FAISSRAGSystem:
             faiss.normalize_L2(query_vector)
             
             # 検索を実行
-            scores, indices = self.index.search(query_vector, min(top_k, self.index.ntotal))
+            scores, indices = self.index.search(query_vector, min(top_k * 2, self.index.ntotal))  # より多く取得してフィルタリング
             
             # 結果を整形
             results = []
@@ -482,18 +544,33 @@ class FAISSRAGSystem:
                     
                 metadata = self.metadata_list[idx]
                 
+                # カテゴリーボーナススコアリング
+                adjusted_score = float(score)
+                if target_category:
+                    category = metadata.get('category', '').lower()
+                    if target_category == 'aga' and 'aga' in category:
+                        adjusted_score += 0.2  # AGAカテゴリーボーナス
+                    elif target_category == 'ed' and 'ed' in category:
+                        adjusted_score += 0.2  # EDカテゴリーボーナス
+                    elif target_category == '美容' and '美容' in category:
+                        adjusted_score += 0.2  # 美容カテゴリーボーナス
+                    elif target_category == 'ダイエット' and 'ダイエット' in category:
+                        adjusted_score += 0.2  # ダイエットカテゴリーボーナス
+                
                 search_result = SearchResult(
                     product_name=metadata.get('name', ''),
                     url=metadata.get('url', ''),
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
-                    similarity_score=float(score),
+                    similarity_score=adjusted_score,
                     metadata=metadata
                 )
                 results.append(search_result)
             
-            return results
+            # スコアでソートして上位を返す
+            results.sort(key=lambda x: x.similarity_score, reverse=True)
+            return results[:top_k]
             
         except Exception as e:
             logger.error(f"ベクトル検索エラー: {e}")
