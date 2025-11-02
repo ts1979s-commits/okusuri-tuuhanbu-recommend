@@ -274,6 +274,11 @@ class FAISSRAGSystem:
                 logger.warning("インデックスが空です")
                 return []
             
+            # 0. 有効成分の厳密検索をチェック
+            if self._is_ingredient_search(query):
+                logger.info(f"有効成分検索モード: {query}")
+                return self._ingredient_exact_search(query.strip(), top_k)
+            
             # 1. 自然言語から検索キーワードを抽出
             extracted_keywords = self._extract_keywords_from_query(query)
             
@@ -310,6 +315,64 @@ class FAISSRAGSystem:
         except Exception as e:
             logger.error(f"検索エラー: {e}")
             return []
+    
+    def _is_ingredient_search(self, query: str) -> bool:
+        """有効成分による検索かどうかを判定"""
+        query_lower = query.lower().strip()
+        
+        # 既知の有効成分リスト
+        known_ingredients = [
+            'シルデナフィル', 'タダラフィル', 'バルデナフィル', 'アバナフィル', 'ウデナフィル',
+            'ミノキシジル', 'フィナステリド', 'デュタステリド', 'ケトコナゾール',
+            'アジスロマイシン', 'フルコナゾール', 'イソトレチノイン', 'ヒトプラセンタ',
+            'ビマトプロスト', 'トラセミド', 'オルリスタット', 'プエラリアミリフィカ'
+        ]
+        
+        # 完全一致チェック
+        return any(ingredient.lower() == query_lower for ingredient in known_ingredients)
+    
+    def _ingredient_exact_search(self, query: str, top_k: int) -> List[SearchResult]:
+        """有効成分による厳密検索（ベクトル検索なし）"""
+        results = []
+        query_lower = query.lower().strip()
+        
+        for i, metadata in enumerate(self.metadata_list):
+            # 有効成分フィールドのみで厳密一致をチェック
+            ingredient = metadata.get('ingredient', '').lower().strip()
+            
+            # 厳密一致のパターン
+            exact_match = False
+            
+            # 1. 完全一致
+            if query_lower == ingredient:
+                exact_match = True
+            
+            # 2. 成分名が含まれているかチェック（区切り文字を考慮）
+            elif ingredient:
+                import re
+                # 日本語の区切り文字で分割
+                ingredient_parts = re.split(r'[、，,\s・]+', ingredient)
+                ingredient_parts = [part.strip() for part in ingredient_parts if part.strip()]
+                
+                # クエリが成分の一部として完全一致するかチェック
+                if query_lower in ingredient_parts:
+                    exact_match = True
+            
+            if exact_match:
+                search_result = SearchResult(
+                    product_name=metadata.get('name', ''),
+                    url=metadata.get('url', ''),
+                    price=metadata.get('price', ''),
+                    description=metadata.get('description', ''),
+                    category=metadata.get('category', ''),
+                    similarity_score=1.0,  # 完全一致なので最高スコア
+                    metadata=metadata
+                )
+                results.append(search_result)
+        
+        # CSV順でソート
+        results.sort(key=lambda x: x.metadata.get('csv_order', 999))
+        return results[:top_k]
     
     def _extract_keywords_from_query(self, query: str) -> List[str]:
         """自然言語クエリから検索キーワードを抽出"""
