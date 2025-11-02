@@ -1,54 +1,40 @@
-"""
+"""""""""
+
 RAGシステム - お薬通販部商品レコメンドLLMアプリ
-ChromaDBとOpenAI Embeddingsを使用した検索・レコメンド機能
+
+非推奨: このファイルは使用されていません。FAISSRAGSystemを使用してください。RAGシステム - お薬通販部商品レコメンドLLMアプリRAGシステム - お薬通販部商品レコメンドLLMアプリ
+
 """
-import json
-import os
-import csv
-from typing import List, Dict, Optional, Any
-import logging
-from dataclasses import dataclass
 
-import chromadb
-from chromadb.config import Settings
-import openai
-from openai import OpenAI
-import numpy as np
+非推奨: このファイルは使用されていません。FAISSRAGSystemを使用してください。非推奨: このファイルは使用されていません。FAISSRAGSystemを使用してください。
 
-from config.settings import get_settings
+# このファイルは非推奨です
 
-settings = get_settings()
+# 代わりにsrc/faiss_rag_system.pyを使用してください""""""
 
-# ログ設定
-logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL))
-logger = logging.getLogger(__name__)
 
-@dataclass
-class SearchResult:
-    """検索結果データクラス"""
-    product_name: str
-    url: str
-    price: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
-    similarity_score: float
-    metadata: Dict[str, Any]
 
 class RAGSystem:
-    """RAGベースの商品検索・レコメンドシステム"""
-    
+
+    """非推奨のRAGシステム - 使用しないでください"""
+
+    # このファイルは非推奨です# このファイルは非推奨です
+
     def __init__(self):
-        """RAGシステムの初期化"""
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+        raise RuntimeError("このクラスは非推奨です。FAISSRAGSystemを使用してください。")# 代わりにsrc/faiss_rag_system.pyを使用してください# 代わりにsrc/faiss_rag_system.pyを使用してください
+
+
+
+class RAGSystem:class RAGSystem:
+
+    """非推奨のRAGシステム - 使用しないでください"""    """非推奨のRAGシステム - 使用しないでください"""
+
         
-        # ChromaDBクライアントの初期化（ONNX問題を回避）
-        os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # 警告を抑制
-        
-        self.chroma_client = chromadb.Client(
-            Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=settings.CHROMA_DB_PATH,
-                anonymized_telemetry=False
+
+    def __init__(self):    def __init__(self):
+
+        raise RuntimeError("このクラスは非推奨です。FAISSRAGSystemを使用してください。")        raise RuntimeError("このクラスは非推奨です。FAISSRAGSystemを使用してください。")
             )
         )
         

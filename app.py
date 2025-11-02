@@ -280,7 +280,16 @@ def main():
                     st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
                 
             except Exception as e:
-                st.error(f"❌ 検索エラーが発生しました: {e}")
+                st.error(f"❌ 検索エラーが発生しました")
+                st.warning("⚠️ システムが初期化中の可能性があります。しばらく待ってから再度お試しください。")
+                
+                # デバッグ情報（詳細エラーは隠す）
+                error_msg = str(e)
+                if "chromadb" in error_msg.lower() or "client" in error_msg.lower():
+                    st.info("💡 システムの設定を確認中です。管理者にお問い合わせください。")
+                else:
+                    st.info(f"エラーの詳細: {error_msg}")
+                
                 logger.error(f"検索エラー: {e}")
         else:
             st.warning("検索クエリを入力してください。")
@@ -290,7 +299,7 @@ def main():
     st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.9rem;">
         💊 お薬通販部 商品レコメンド AI - フェーズ1実装<br>
-        Powered by OpenAI GPT + RAG + ChromaDB
+        Powered by OpenAI GPT + RAG + FAISS
     </div>
     """, unsafe_allow_html=True)
 
