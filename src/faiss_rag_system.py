@@ -396,3 +396,39 @@ class FAISSRAGSystem:
         except Exception as e:
             logger.error(f"インデックス保存エラー: {e}")
             raise
+
+    def get_collection_info(self) -> Dict[str, Any]:
+        """コレクション情報を取得（互換性のため）"""
+        try:
+            if self.index is None:
+                return {
+                    "status": "not_initialized",
+                    "document_count": 0,
+                    "index_exists": False
+                }
+            
+            return {
+                "status": "ready",
+                "document_count": self.index.ntotal if self.index else 0,
+                "index_exists": self.index is not None,
+                "metadata_count": len(self.metadata_list),
+                "index_dimension": self.dimension
+            }
+        except Exception as e:
+            logger.error(f"コレクション情報取得エラー: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "document_count": 0,
+                "index_exists": False
+            }
+
+    def get_recommendations(self, query: str, context: str = "", top_k: int = 5) -> List[SearchResult]:
+        """レコメンデーション（search_productsのエイリアス）"""
+        # contextがある場合はクエリに追加
+        if context:
+            enhanced_query = f"{query} {context}"
+        else:
+            enhanced_query = query
+        
+        return self.search_products(enhanced_query, top_k)
