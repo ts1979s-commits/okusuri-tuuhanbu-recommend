@@ -66,7 +66,14 @@ st.markdown("""
 @st.cache_resource
 def initialize_recommendation_engine():
     """レコメンドエンジンを初期化（キャッシュ付き）"""
-    return RecommendationEngine()
+    try:
+        engine = RecommendationEngine()
+        # 初期化が成功したかテスト
+        _ = engine.get_system_status()
+        return engine
+    except Exception as e:
+        st.error(f"システム初期化エラー: {str(e)}")
+        raise e
 
 @st.cache_resource
 def initialize_scraper():
@@ -280,7 +287,39 @@ def main():
                     st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
                 
             except Exception as e:
-                st.error(f"❌ 検索エラーが発生しました")
+                st.error(f"❌ 検索エラーが発生しました: {str(e)}")
+                
+                # デバッグ情報を表示
+                with st.expander("🔍 詳細なエラー情報", expanded=False):
+                    st.write("**エラーの詳細:**", str(e))
+                    st.write("**エラータイプ:**", type(e).__name__)
+                    
+                    # 設定確認
+                    try:
+                        from config.settings import get_settings
+                        settings = get_settings()
+                        st.write("**OpenAI APIキー:**", "✅ 設定済み" if settings.OPENAI_API_KEY else "❌ 未設定")
+                        st.write("**ログレベル:**", settings.LOG_LEVEL)
+                    except Exception as config_error:
+                        st.write("**設定読み込みエラー:**", str(config_error))
+                    
+                    # システム情報
+                    import sys
+                    import os
+                    st.write("**Python バージョン:**", sys.version)
+                    st.write("**作業ディレクトリ:**", os.getcwd())
+                    
+                    # データファイルの存在確認
+                    data_files = [
+                        "./data/faiss_index.bin",
+                        "./data/metadata.pkl", 
+                        "./data/documents.pkl",
+                        "./data/product_recommend.csv"
+                    ]
+                    for file_path in data_files:
+                        exists = os.path.exists(file_path)
+                        st.write(f"**{file_path}:**", "✅ 存在" if exists else "❌ 不在")
+                
                 st.warning("⚠️ システムが初期化中の可能性があります。しばらく待ってから再度お試しください。")
                 
                 # デバッグ情報（詳細エラーは隠す）
