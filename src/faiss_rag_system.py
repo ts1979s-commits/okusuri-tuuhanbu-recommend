@@ -91,7 +91,7 @@ class FAISSRAGSystem:
         self.documents_file = os.path.join(self.data_dir, "documents.pkl")
 
     def search_products(self, query: str, top_k: int = 5) -> List[SearchResult]:
-        """キーワードベース検索（全フィールド対象の正確な検索）"""
+        """キーワードベース検索（シンプルで確実な検索）"""
         try:
             if self.index is None or self.index.ntotal == 0:
                 logger.warning("インデックスが空です")
@@ -100,16 +100,16 @@ class FAISSRAGSystem:
             query = query.strip()
             logger.info(f"検索開始: '{query}'")
             
-            # 1. キーワード完全一致検索を実行
-            exact_results = self._keyword_exact_search(query, top_k)
+            # 1. まず基本的な文字列マッチング検索を試行
+            simple_results = self._simple_text_search(query, top_k)
             
-            # 2. 完全一致で結果がある場合はそれを返す
-            if exact_results:
-                logger.info(f"完全一致検索で{len(exact_results)}件の結果を取得")
-                return exact_results
+            # 2. 結果がある場合はそれを返す
+            if simple_results:
+                logger.info(f"文字列マッチング検索で{len(simple_results)}件の結果を取得")
+                return simple_results
             
-            # 3. 完全一致で結果がない場合、ベクトル検索にフォールバック
-            logger.info("完全一致なし。ベクトル検索にフォールバック")
+            # 3. 結果がない場合、ベクトル検索にフォールバック
+            logger.info("文字列マッチングなし。ベクトル検索にフォールバック")
             vector_results = self._vector_search(query, top_k)
             
             logger.info(f"検索完了: {len(vector_results)}件の結果")
@@ -118,6 +118,61 @@ class FAISSRAGSystem:
         except Exception as e:
             logger.error(f"検索エラー: {e}")
             return []
+    
+    def _simple_text_search(self, query: str, top_k: int) -> List[SearchResult]:
+        """シンプルな文字列検索（確実に動作する基本検索）"""
+        results = []
+        query_lower = query.lower().strip()
+        logger.info(f"シンプル文字列検索: '{query_lower}'")
+        logger.info(f"検索対象データ数: {len(self.metadata_list)}")
+        
+        if not self.metadata_list:
+            logger.warning("メタデータリストが空です")
+            return results
+        
+        for i, metadata in enumerate(self.metadata_list):
+            # 全フィールドを文字列として結合
+            search_text = " ".join([
+                metadata.get('category', ''),
+                metadata.get('subcategory', ''),
+                metadata.get('name', ''),
+                metadata.get('effect', ''),
+                metadata.get('ingredient', ''),
+                metadata.get('description', '')
+            ]).lower().strip()
+            
+            # シンプルな含有チェック
+            if query_lower in search_text:
+                # より詳細なスコアリング
+                score = 0.5  # 基本スコア
+                
+                # 重要フィールドでの一致をチェック
+                if query_lower in metadata.get('ingredient', '').lower():
+                    score = 0.95  # 有効成分一致
+                elif query_lower in metadata.get('name', '').lower():
+                    score = 0.90  # 商品名一致
+                elif query_lower in metadata.get('effect', '').lower():
+                    score = 0.85  # 効果一致
+                elif query_lower in metadata.get('category', '').lower():
+                    score = 0.80  # カテゴリ一致
+                
+                search_result = SearchResult(
+                    product_name=metadata.get('name', ''),
+                    url=metadata.get('url', ''),
+                    price=metadata.get('price', ''),
+                    description=metadata.get('description', ''),
+                    category=metadata.get('category', ''),
+                    similarity_score=score,
+                    metadata=metadata
+                )
+                results.append(search_result)
+                logger.info(f"マッチ: {metadata.get('name', '')} (スコア: {score})")
+        
+        # スコア順でソート
+        results.sort(key=lambda x: (-x.similarity_score, x.metadata.get('csv_order', 999)))
+        
+        logger.info(f"シンプル検索結果: {len(results)}件")
+        return results[:top_k]
     
     def _keyword_exact_search(self, query: str, top_k: int) -> List[SearchResult]:
         """キーワード完全一致検索（全フィールド対象）"""

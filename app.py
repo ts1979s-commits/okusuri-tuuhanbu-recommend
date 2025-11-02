@@ -279,6 +279,22 @@ def main():
                 if results:
                     st.markdown("### 🎯 おすすめ商品")
                     
+                    # デバッグ情報（開発用）
+                    if show_details:
+                        with st.expander("🔧 デバッグ情報", expanded=False):
+                            st.write(f"**検索クエリ:** '{user_query}'")
+                            st.write(f"**結果数:** {len(results)}")
+                            st.write(f"**システム状態:** {engine.get_system_status()}")
+                            if results:
+                                st.write("**最初の結果サンプル:**")
+                                first_result = results[0]
+                                st.json({
+                                    "product_name": first_result.product_name,
+                                    "category": first_result.category,
+                                    "similarity_score": first_result.similarity_score,
+                                    "metadata_sample": dict(list(first_result.metadata.items())[:5]) if first_result.metadata else {}
+                                })
+                    
                     for i, result in enumerate(results):
                         display_search_result(result, i)
                         
