@@ -277,7 +277,15 @@ class FAISSRAGSystem:
             # 0. 有効成分の厳密検索をチェック
             if self._is_ingredient_search(query):
                 logger.info(f"有効成分検索モード: {query}")
-                return self._ingredient_exact_search(query.strip(), top_k)
+                ingredient_results = self._ingredient_exact_search(query.strip(), top_k)
+                
+                # 有効成分検索で結果が見つからない場合、通常検索にフォールバック
+                if not ingredient_results:
+                    logger.warning(f"有効成分検索で結果なし。通常検索にフォールバック: {query}")
+                    # 通常検索を実行
+                    pass  # 下記の通常検索ロジックに続行
+                else:
+                    return ingredient_results
             
             # 1. 自然言語から検索キーワードを抽出
             extracted_keywords = self._extract_keywords_from_query(query)
@@ -328,47 +336,37 @@ class FAISSRAGSystem:
             'ビマトプロスト', 'トラセミド', 'オルリスタット', 'プエラリアミリフィカ'
         ]
         
-        # 完全一致チェック
-        return any(ingredient.lower() == query_lower for ingredient in known_ingredients)
+        # 完全一致または部分一致チェック（判定を緩和）
+        for ingredient in known_ingredients:
+            if ingredient.lower() in query_lower or query_lower in ingredient.lower():
+                return True
+        return False
     
     def _ingredient_exact_search(self, query: str, top_k: int) -> List[SearchResult]:
-        """有効成分による厳密検索（ベクトル検索なし）"""
+        """有効成分による厳密検索（シンプル版）"""
         results = []
         query_lower = query.lower().strip()
+        logger.info(f"有効成分検索開始: クエリ='{query_lower}'")
         
         for i, metadata in enumerate(self.metadata_list):
-            # 有効成分フィールドのみで厳密一致をチェック
+            # 有効成分フィールドで検索
             ingredient = metadata.get('ingredient', '').lower().strip()
             
-            # 厳密一致のパターン
-            exact_match = False
-            
-            # 1. 完全一致
-            if query_lower == ingredient:
-                exact_match = True
-            
-            # 2. 成分名が含まれているかチェック（区切り文字を考慮）
-            elif ingredient:
-                import re
-                # 日本語の区切り文字で分割
-                ingredient_parts = re.split(r'[、，,\s・]+', ingredient)
-                ingredient_parts = [part.strip() for part in ingredient_parts if part.strip()]
-                
-                # クエリが成分の一部として完全一致するかチェック
-                if query_lower in ingredient_parts:
-                    exact_match = True
-            
-            if exact_match:
+            # シンプルな含有チェック
+            if ingredient and query_lower in ingredient:
+                logger.info(f"マッチ: {metadata.get('name', '')} - {ingredient}")
                 search_result = SearchResult(
                     product_name=metadata.get('name', ''),
                     url=metadata.get('url', ''),
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
-                    similarity_score=1.0,  # 完全一致なので最高スコア
+                    similarity_score=1.0,
                     metadata=metadata
                 )
                 results.append(search_result)
+        
+        logger.info(f"有効成分検索結果: {len(results)}件")
         
         # CSV順でソート
         results.sort(key=lambda x: x.metadata.get('csv_order', 999))
