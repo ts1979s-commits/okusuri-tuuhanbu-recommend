@@ -51,10 +51,30 @@ class FAISSRAGSystem:
         
         try:
             # 最小限のパラメータでクライアントを作成
-            self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            # proxies引数は明示的に使用しない
+            self.client = OpenAI(
+                api_key=settings.OPENAI_API_KEY,
+                timeout=30.0
+            )
             logger.info("OpenAIクライアントを初期化しました")
+        except TypeError as te:
+            if "proxies" in str(te):
+                # プロキシエラーの場合、より基本的な初期化を試行
+                logger.warning("プロキシエラーを検出。基本的な初期化を試行中...")
+                try:
+                    self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+                    logger.info("基本的なOpenAIクライアント初期化に成功")
+                except Exception as e2:
+                    logger.error(f"基本的な初期化も失敗: {e2}")
+                    raise
+            else:
+                logger.error(f"OpenAIクライアント初期化エラー: {te}")
+                raise
         except Exception as e:
             logger.error(f"OpenAIクライアント初期化エラー: {e}")
+            # 可能性のある問題をチェック
+            if "proxies" in str(e):
+                logger.error("プロキシ関連エラーが検出されました。環境変数を確認してください。")
             raise
         
         # FAISS設定
