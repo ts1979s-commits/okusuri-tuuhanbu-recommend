@@ -106,9 +106,9 @@ def initialize_scraper():
 def display_search_result(result: SearchResult, index: int):
     """検索結果を表示"""
     with st.container():
-        # メタデータから効果と有効成分を取得
-        effect = result.metadata.get('効果', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
-        active_ingredient = result.metadata.get('有効成分', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
+        # メタデータから効果と有効成分を取得（英語キーで取得）
+        effect = result.metadata.get('effect', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
+        active_ingredient = result.metadata.get('ingredient', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
         
         st.markdown(f"""
         <div class="result-card">
