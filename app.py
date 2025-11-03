@@ -277,13 +277,18 @@ def main():
         search_button = st.button("🔍 検索・レコメンド", type="primary")
     with col2:
         if st.button("🔄 リセット", help="ページの動作が重い場合やエラー時に使用"):
-            # キャッシュをクリア
-            st.cache_data.clear()
-            st.cache_resource.clear()
-            # セッション状態をリセット
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.experimental_rerun()
+            # リセット実行中の表示
+            with st.spinner("リセット中..."):
+                # キャッシュをクリア
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                # セッション状態をリセット
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.success("✅ リセット完了！ページを再読み込みします...")
+                import time
+                time.sleep(1)
+            st.rerun()
     
     if search_button or user_query:
         if user_query.strip():
