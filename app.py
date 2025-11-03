@@ -286,7 +286,6 @@ def main():
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
                 st.success("✅ リセット完了！ページを再読み込みします...")
-                import time
                 time.sleep(1)
             st.rerun()
     
