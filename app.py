@@ -45,6 +45,7 @@ st.markdown("""
         padding: 1rem;
         margin: 1rem 0;
         background-color: #f9f9f9;
+        color: #333;
     }
     .score-badge {
         background-color: #4CAF50;
@@ -59,6 +60,48 @@ st.markdown("""
         padding: 0.2rem 0.5rem;
         border-radius: 15px;
         font-size: 0.8rem;
+    }
+    
+    /* ダークモード対応 */
+    @media (prefers-color-scheme: dark) {
+        .result-card {
+            border: 1px solid #555;
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+        }
+        .main-header {
+            color: #4da6ff;
+        }
+    }
+    
+    /* Streamlitのダークテーマ検出 */
+    [data-theme="dark"] .result-card {
+        border: 1px solid #555;
+        background-color: #2d2d2d;
+        color: #e0e0e0;
+    }
+    [data-theme="dark"] .main-header {
+        color: #4da6ff;
+    }
+    
+    /* 強制的にダークモード対応（フォールバック） */
+    .stApp[data-theme="dark"] .result-card {
+        border: 1px solid #555 !important;
+        background-color: #2d2d2d !important;
+        color: #e0e0e0 !important;
+    }
+    
+    /* Streamlit CSS変数を使用した対応 */
+    .result-card {
+        border: 1px solid var(--text-color-light, #ddd);
+        background-color: var(--background-color-secondary, #f9f9f9);
+        color: var(--text-color, #333);
+    }
+    .result-card h4, .result-card p, .result-card strong {
+        color: var(--text-color, #333) !important;
+    }
+    .result-card a {
+        color: var(--primary-color, #0066cc) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -111,13 +154,20 @@ def display_search_result(result: SearchResult, index: int):
         active_ingredient = result.metadata.get('ingredient', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
         
         st.markdown(f"""
-        <div class="result-card">
-            <h4>🏷️ {result.product_name}</h4>
-            <p><strong>⚗️ 有効成分:</strong> {active_ingredient}</p>
-            <p><strong>✨ 効果:</strong> {effect}</p>
-            <p><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
-            <p><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
-            <p><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank">商品ページを開く</a></p>
+        <div class="result-card" style="
+            border: 1px solid var(--text-color, #ddd);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            background-color: var(--secondary-background-color, #f9f9f9);
+            color: var(--text-color, #333);
+        ">
+            <h4 style="color: var(--text-color, #333);">🏷️ {result.product_name}</h4>
+            <p style="color: var(--text-color, #333);"><strong>⚗️ 有効成分:</strong> {active_ingredient}</p>
+            <p style="color: var(--text-color, #333);"><strong>✨ 効果:</strong> {effect}</p>
+            <p style="color: var(--text-color, #333);"><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
+            <p style="color: var(--text-color, #333);"><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
+            <p style="color: var(--text-color, #333);"><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
             <span class="score-badge">類似度: {result.similarity_score:.3f}</span>
         </div>
         """, unsafe_allow_html=True)
