@@ -264,9 +264,21 @@ def main():
         st.write("- ニキビ治療薬を教えてください")
         st.write("- ダイエットサプリを見たいです")
     
+    # 画面クリア処理
+    clear_value = ""
+    if st.session_state.get('clear_screen', False):
+        clear_value = ""
+        st.session_state['clear_screen'] = False
+        # 検索結果関連のセッション状態もクリア
+        keys_to_clear = ['search_results', 'search_query', 'last_search']
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
+    
     # 検索フォーム
     user_query = st.text_input(
         "💬 症状や探している商品を入力してください:",
+        value=clear_value,
         placeholder="例: 有効成分ミノキシジルのAGA治療薬を教えてください。",
         help="症状、商品名、カテゴリなど自然な言葉で入力できます",
         key="search_input"
@@ -291,18 +303,14 @@ def main():
             st.rerun()
     with col3:
         if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
-            # 検索関連のセッション状態をクリア
-            if 'search_results' in st.session_state:
-                del st.session_state['search_results']
-            if 'search_query' in st.session_state:
-                del st.session_state['search_query']
-            # 検索窓をクリア
-            st.session_state['search_input'] = ""
+            # 画面クリアフラグを設定
+            st.session_state['clear_screen'] = True
             st.success("✅ 画面をクリアしました")
             time.sleep(0.5)
             st.rerun()
     
-    if search_button or user_query:
+    # 検索実行（画面クリア直後は除く）
+    if (search_button or user_query) and not st.session_state.get('clear_screen', False):
         if user_query.strip():
             try:
                 engine = initialize_recommendation_engine()
