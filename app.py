@@ -65,15 +65,38 @@ st.markdown("""
 
 @st.cache_resource
 def initialize_recommendation_engine():
-    """レコメンドエンジンを初期化（キャッシュ付き）"""
+    """レコメンドエンジンを初期化（キャッシュ付き、エラー処理強化）"""
     try:
+        # エンジン初期化
         engine = RecommendationEngine()
-        # 初期化が成功したかテスト
-        _ = engine.get_system_status()
+        
+        # 軽量な初期化テスト
+        try:
+            status = engine.get_system_status()
+            st.sidebar.write(f"✅ システム状態: {status['recommendation_engine']}")
+        except Exception as status_error:
+            st.sidebar.warning(f"⚠️ 状態確認エラー: {str(status_error)}")
+        
         return engine
+        
     except Exception as e:
-        st.error(f"システム初期化エラー: {str(e)}")
-        raise e
+        error_msg = str(e)
+        st.error(f"❌ システム初期化エラー: {error_msg}")
+        
+        # 詳細なエラー情報
+        with st.expander("🔧 エラー詳細", expanded=False):
+            st.write(f"**エラータイプ:** {type(e).__name__}")
+            st.write(f"**エラーメッセージ:** {error_msg}")
+            
+            # 環境情報
+            import sys
+            st.write(f"**Python バージョン:** {sys.version}")
+            st.write(f"**Streamlit セッション:** {st.session_state}")
+        
+        # 軽量版システムを返す（基本的な機能のみ）
+        st.warning("⚠️ システムは制限モードで動作しています")
+        st.info("🔄 「リセット」ボタンまたはページの再読み込みを試してください")
+        return None
 
 @st.cache_resource
 def initialize_scraper():
@@ -249,7 +272,20 @@ def main():
     )
     
     # 検索ボタン
-    if st.button("🔍 検索・レコメンド", type="primary") or user_query:
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        search_button = st.button("🔍 検索・レコメンド", type="primary")
+    with col2:
+        if st.button("🔄 リセット", help="ページの動作が重い場合やエラー時に使用"):
+            # キャッシュをクリア
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            # セッション状態をリセット
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.experimental_rerun()
+    
+    if search_button or user_query:
         if user_query.strip():
             try:
                 engine = initialize_recommendation_engine()
@@ -306,14 +342,34 @@ def main():
                     st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
                 
             except Exception as e:
-                st.error(f"❌ 検索エラーが発生しました: {str(e)}")
+                st.error("❌ 検索中にエラーが発生しました")
                 
-                # デバッグ情報を表示
-                with st.expander("🔍 詳細なエラー情報", expanded=False):
-                    st.write("**エラーの詳細:**", str(e))
-                    st.write("**エラータイプ:**", type(e).__name__)
+                # エラーの詳細情報
+                with st.expander("� エラー詳細と対処法", expanded=True):
+                    error_type = type(e).__name__
+                    error_msg = str(e)
+                    
+                    st.write(f"**エラータイプ:** {error_type}")
+                    st.write(f"**エラーメッセージ:** {error_msg}")
+                    
+                    # 一般的なエラーの対処法
+                    st.markdown("### 💡 対処法")
+                    if "openai" in error_msg.lower():
+                        st.warning("🔑 **OpenAI APIの問題:** APIキーの確認またはネットワーク接続を確認してください")
+                    elif "faiss" in error_msg.lower():
+                        st.warning("🗃️ **検索インデックスの問題:** データベースの再構築が必要な可能性があります")
+                    elif "memory" in error_msg.lower() or "ram" in error_msg.lower():
+                        st.warning("💾 **メモリ不足:** 上部の「リセット」ボタンを押して再試行してください")
+                    else:
+                        st.info("🔄 **推奨対処順序:**")
+                        st.markdown("""
+                        1. **「リセット」ボタンを押す** （上部右側）
+                        2. **ページを再読み込み** (F5またはCtrl+R)
+                        3. **少し時間をおいて再試行**
+                        """)
                     
                     # 設定確認
+                    st.markdown("### ⚙️ システム設定")
                     try:
                         from config.settings import get_settings
                         settings = get_settings()
@@ -323,27 +379,30 @@ def main():
                         st.write("**設定読み込みエラー:**", str(config_error))
                     
                     # システム情報
+                    st.markdown("### 🖥️ システム情報")
                     import sys
                     import os
-                    st.write("**Python バージョン:**", sys.version)
+                    st.write("**Python バージョン:**", sys.version.split()[0])
                     st.write("**作業ディレクトリ:**", os.getcwd())
                     
                     # データファイルの存在確認
+                    st.markdown("### 📁 データファイル確認")
                     data_files = [
                         "./data/faiss_index.bin",
                         "./data/metadata.pkl", 
                         "./data/documents.pkl",
                         "./data/product_recommend.csv"
                     ]
+                    missing_files = []
                     for file_path in data_files:
                         exists = os.path.exists(file_path)
-                        st.write(f"**{file_path}:**", "✅ 存在" if exists else "❌ 不在")
-                
-                st.warning("⚠️ システムが初期化中の可能性があります。しばらく待ってから再度お試しください。")
-                
-                # デバッグ情報
-                error_msg = str(e)
-                st.info(f"エラーの詳細: {error_msg}")
+                        status = "✅ 存在" if exists else "❌ 不在"
+                        st.write(f"**{file_path}:** {status}")
+                        if not exists:
+                            missing_files.append(file_path)
+                    
+                    if missing_files:
+                        st.error("⚠️ 一部のデータファイルが不足しています。サイドバーの「商品データ取得」を実行してください。")
                 
                 logger.error(f"検索エラー: {e}")
         else:
