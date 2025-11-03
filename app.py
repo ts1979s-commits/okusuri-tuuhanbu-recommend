@@ -298,9 +298,9 @@ def main():
     # 検索例を表示
     with st.expander("💡 検索例", expanded=False):
         st.write("**症状での検索例:**")
-        st.write("- 髪の毛が薄くなってきた気がする")
-        st.write("- 肌荒れがひどい、ニキビが治らない")
-        st.write("- ダイエットしても体重が落ちない")
+        st.write("- 抜け毛が増えた")
+        st.write("- 足のむくみが取れない")
+        st.write("- 肌の再生を促したい")
         
         st.write("**商品名での検索例:**")
         st.write("- カマグラゴールド")
@@ -308,10 +308,10 @@ def main():
         st.write("- オルリガル")
         
         st.write("**カテゴリでの検索例:**")
-        st.write("- ED治療薬を探しています")
-        st.write("- AGA治療薬が欲しいです")
-        st.write("- ニキビ治療薬を教えてください")
-        st.write("- ダイエットサプリを見たいです")
+        st.write("- ED治療薬")
+        st.write("- AGA治療薬")
+        st.write("- ニキビ")
+        st.write("- ダイエット")
     
     # 検索フォーム
     # クリア要求がある場合は空文字列、そうでなければセッション状態から取得
