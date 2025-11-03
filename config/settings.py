@@ -4,6 +4,12 @@
 import os
 import streamlit as st
 from typing import Optional
+from dotenv import load_dotenv
+
+# プロジェクトルートディレクトリから.envファイルを読み込み
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(project_root, '.env')
+load_dotenv(env_path)
 
 class Settings:
     """アプリケーション設定"""
@@ -13,6 +19,11 @@ class Settings:
         self.OPENAI_API_KEY = self._get_secret("OPENAI_API_KEY")
         self.OPENAI_MODEL = self._get_secret("OPENAI_CHAT_MODEL", "gpt-3.5-turbo")
         self.OPENAI_EMBEDDING_MODEL = self._get_secret("OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002")
+        
+        # APIキーの検証（ログのみ、例外は発生させない）
+        if not self.OPENAI_API_KEY:
+            import logging
+            logging.warning("OPENAI_API_KEYが設定されていません。.envファイルまたは環境変数を確認してください。")
         
         # その他の設定
         self.MAX_TOKENS = int(self._get_secret("MAX_TOKENS", "500"))
@@ -43,7 +54,8 @@ class Settings:
             pass
         
         # OS環境変数から取得
-        return os.getenv(key, default)
+        value = os.getenv(key, default)
+        return value
 
 # 設定インスタンス
 _settings = None

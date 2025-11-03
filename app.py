@@ -264,21 +264,17 @@ def main():
         st.write("- ニキビ治療薬を教えてください")
         st.write("- ダイエットサプリを見たいです")
     
-    # 画面クリア処理
-    clear_value = ""
-    if st.session_state.get('clear_screen', False):
-        clear_value = ""
-        st.session_state['clear_screen'] = False
-        # 検索結果関連のセッション状態もクリア
-        keys_to_clear = ['search_results', 'search_query', 'last_search']
-        for key in keys_to_clear:
-            if key in st.session_state:
-                del st.session_state[key]
-    
     # 検索フォーム
+    # クリア要求がある場合は空文字列、そうでなければセッション状態から取得
+    default_value = "" if st.session_state.get('clear_requested', False) else st.session_state.get('search_input', "")
+    
+    # クリア要求フラグをリセット
+    if st.session_state.get('clear_requested', False):
+        st.session_state['clear_requested'] = False
+    
     user_query = st.text_input(
         "💬 症状や探している商品を入力してください:",
-        value=clear_value,
+        value=default_value,
         placeholder="例: 有効成分ミノキシジルのAGA治療薬を教えてください。",
         help="症状、商品名、カテゴリなど自然な言葉で入力できます",
         key="search_input"
@@ -295,25 +291,41 @@ def main():
                 # キャッシュをクリア
                 st.cache_data.clear()
                 st.cache_resource.clear()
-                # セッション状態をリセット
+                # セッション状態をリセット（ウィジェットキーは除外）
+                widget_keys = ['search_input']  # ウィジェットのキーを除外
                 for key in list(st.session_state.keys()):
-                    del st.session_state[key]
+                    if key not in widget_keys:
+                        del st.session_state[key]
                 st.success("✅ リロード完了！システムを再読み込みします...")
                 time.sleep(1)
             st.rerun()
     with col3:
         if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
-            # 画面クリアフラグを設定
-            st.session_state['clear_screen'] = True
+            # 検索結果関連のセッション状態をクリア
+            keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_context', 'current_search_time', 'current_query']
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
+            # クリア状態フラグを設定
+            st.session_state['clear_requested'] = True
             st.success("✅ 画面をクリアしました")
             time.sleep(0.5)
             st.rerun()
     
-    # 検索実行（画面クリア直後は除く）
-    if (search_button or user_query) and not st.session_state.get('clear_screen', False):
+    # 検索実行
+    if search_button or (user_query and user_query.strip()):
         if user_query.strip():
             try:
                 engine = initialize_recommendation_engine()
+                
+                # エンジンが正常に初期化されたか確認
+                if engine is None:
+                    st.error("❌ システムが正常に初期化されていません")
+                    st.warning("🔧 以下を確認してください：")
+                    st.write("1. `.env`ファイルにOPENAI_API_KEYが設定されているか")
+                    st.write("2. OpenAI APIキーが有効かどうか")
+                    st.write("3. インターネット接続が正常か")
+                    return
                 
                 with st.spinner("検索中..."):
                     start_time = time.time()
@@ -323,54 +335,17 @@ def main():
                     )
                     search_time = time.time() - start_time
                 
-                # 結果の表示
-                st.markdown("---")
-                st.subheader("📋 検索結果")
-                
-                # 検索情報
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("結果数", len(results))
-                with col2:
-                    st.metric("検索時間", f"{search_time:.2f}秒")
-                with col3:
-                    st.markdown(f'<span class="query-type-badge">タイプ: {context.query_type.value}</span>', unsafe_allow_html=True)
-                
-                if show_details and context.extracted_keywords:
-                    st.write("**抽出されたキーワード:**", ", ".join(context.extracted_keywords))
-                
-                # 検索結果の表示
-                if results:
-                    st.markdown("### 🎯 おすすめ商品")
-                    
-                    # デバッグ情報（開発用）
-                    if show_details:
-                        with st.expander("🔧 デバッグ情報", expanded=False):
-                            st.write(f"**検索クエリ:** '{user_query}'")
-                            st.write(f"**結果数:** {len(results)}")
-                            st.write(f"**システム状態:** {engine.get_system_status()}")
-                            if results:
-                                st.write("**最初の結果サンプル:**")
-                                first_result = results[0]
-                                st.json({
-                                    "product_name": first_result.product_name,
-                                    "category": first_result.category,
-                                    "similarity_score": first_result.similarity_score,
-                                    "metadata_sample": dict(list(first_result.metadata.items())[:5]) if first_result.metadata else {}
-                                })
-                    
-                    for i, result in enumerate(results):
-                        display_search_result(result, i)
-                        
-                else:
-                    st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
-                    st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
+                # 結果をセッションに保存
+                st.session_state['current_results'] = results
+                st.session_state['current_context'] = context
+                st.session_state['current_search_time'] = search_time
+                st.session_state['current_query'] = user_query
                 
             except Exception as e:
                 st.error("❌ 検索中にエラーが発生しました")
                 
                 # エラーの詳細情報
-                with st.expander("� エラー詳細と対処法", expanded=True):
+                with st.expander("🔧 エラー詳細と対処法", expanded=True):
                     error_type = type(e).__name__
                     error_msg = str(e)
                     
@@ -392,46 +367,59 @@ def main():
                         2. **ページを再読み込み** (F5またはCtrl+R)
                         3. **少し時間をおいて再試行**
                         """)
-                    
-                    # 設定確認
-                    st.markdown("### ⚙️ システム設定")
-                    try:
-                        from config.settings import get_settings
-                        settings = get_settings()
-                        st.write("**OpenAI APIキー:**", "✅ 設定済み" if settings.OPENAI_API_KEY else "❌ 未設定")
-                        st.write("**ログレベル:**", settings.LOG_LEVEL)
-                    except Exception as config_error:
-                        st.write("**設定読み込みエラー:**", str(config_error))
-                    
-                    # システム情報
-                    st.markdown("### 🖥️ システム情報")
-                    import sys
-                    import os
-                    st.write("**Python バージョン:**", sys.version.split()[0])
-                    st.write("**作業ディレクトリ:**", os.getcwd())
-                    
-                    # データファイルの存在確認
-                    st.markdown("### 📁 データファイル確認")
-                    data_files = [
-                        "./data/faiss_index.bin",
-                        "./data/metadata.pkl", 
-                        "./data/documents.pkl",
-                        "./data/product_recommend.csv"
-                    ]
-                    missing_files = []
-                    for file_path in data_files:
-                        exists = os.path.exists(file_path)
-                        status = "✅ 存在" if exists else "❌ 不在"
-                        st.write(f"**{file_path}:** {status}")
-                        if not exists:
-                            missing_files.append(file_path)
-                    
-                    if missing_files:
-                        st.error("⚠️ 一部のデータファイルが不足しています。サイドバーの「商品データ取得」を実行してください。")
                 
                 logger.error(f"検索エラー: {e}")
         else:
             st.warning("検索クエリを入力してください。")
+    
+    # 検索結果の表示（セッションに保存された結果がある場合）
+    if 'current_results' in st.session_state and 'current_context' in st.session_state:
+        results = st.session_state['current_results']
+        context = st.session_state['current_context']
+        search_time = st.session_state.get('current_search_time', 0)
+        query = st.session_state.get('current_query', '')
+        
+        # 結果の表示
+        st.markdown("---")
+        st.subheader("📋 検索結果")
+        
+        # 検索情報
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("結果数", len(results))
+        with col2:
+            st.metric("検索時間", f"{search_time:.2f}秒")
+        with col3:
+            st.markdown(f'<span class="query-type-badge">タイプ: {context.query_type.value}</span>', unsafe_allow_html=True)
+        
+        if show_details and context.extracted_keywords:
+            st.write("**抽出されたキーワード:**", ", ".join(context.extracted_keywords))
+        
+        # 検索結果の表示
+        if results:
+            st.markdown("### 🎯 おすすめ商品")
+            
+            # デバッグ情報（開発用）
+            if show_details:
+                with st.expander("🔧 デバッグ情報", expanded=False):
+                    st.write(f"**検索クエリ:** '{query}'")
+                    st.write(f"**結果数:** {len(results)}")
+                    if results:
+                        st.write("**最初の結果サンプル:**")
+                        first_result = results[0]
+                        st.json({
+                            "product_name": first_result.product_name,
+                            "category": first_result.category,
+                            "similarity_score": first_result.similarity_score,
+                            "metadata_sample": dict(list(first_result.metadata.items())[:5]) if first_result.metadata else {}
+                        })
+            
+            for i, result in enumerate(results):
+                display_search_result(result, i)
+                
+        else:
+            st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
+            st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
     
     # フッター
     st.markdown("---")
