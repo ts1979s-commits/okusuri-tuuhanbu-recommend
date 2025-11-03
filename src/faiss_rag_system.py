@@ -193,6 +193,7 @@ class FAISSRAGSystem:
                 'name': metadata.get('name', ''),                   # 商品名
                 'effect': metadata.get('effect', ''),               # 効果
                 'ingredient': metadata.get('ingredient', ''),       # 有効成分
+                'keywords': metadata.get('keywords', ''),           # 検索キーワード（新規追加）
                 'description': metadata.get('description', '')      # 説明文
             }
             
@@ -268,12 +269,13 @@ class FAISSRAGSystem:
     def _get_field_score(self, field_name: str) -> float:
         """フィールドの重要度に応じたスコア"""
         field_scores = {
-            'ingredient': 0.95,    # 有効成分（最重要）
-            'name': 0.90,          # 商品名
-            'effect': 0.85,        # 効果
-            'category': 0.80,      # カテゴリ名
-            'subcategory': 0.75,   # サブカテゴリ名
-            'description': 0.70    # 説明文
+            'keywords': 0.92,       # 検索キーワード（最重要級）
+            'ingredient': 0.90,     # 有効成分
+            'name': 0.88,           # 商品名
+            'effect': 0.85,         # 効果
+            'category': 0.80,       # カテゴリ名
+            'subcategory': 0.75,    # サブカテゴリ名
+            'description': 0.70     # 説明文
         }
         return field_scores.get(field_name, 0.5)
     
@@ -384,6 +386,7 @@ class FAISSRAGSystem:
                     効果: {row.get('効果', '')}
                     有効成分: {row.get('有効成分', '')}
                     説明: {row.get('説明文', '')}
+                    検索キーワード: {row.get('検索キーワード', '')}
                     """
                     
                     # メタデータを準備
@@ -394,6 +397,7 @@ class FAISSRAGSystem:
                         'effect': row.get('効果', ''),
                         'ingredient': row.get('有効成分', ''),
                         'description': row.get('説明文', ''),
+                        'keywords': row.get('検索キーワード', ''),  # 新規追加
                         'url': row.get('商品URL', ''),
                         'price': '',  # 価格情報は含めない
                         'csv_order': i
