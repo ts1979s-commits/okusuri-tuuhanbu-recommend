@@ -89,6 +89,14 @@ class FAISSRAGSystem:
         self.index_file = os.path.join(self.data_dir, "faiss_index.bin")
         self.metadata_file = os.path.join(self.data_dir, "metadata.pkl")
         self.documents_file = os.path.join(self.data_dir, "documents.pkl")
+        
+        # 既存のインデックスがあればロード
+        if self._index_exists():
+            logger.info("既存のインデックスをロード中...")
+            self._load_index()
+        else:
+            logger.info("インデックスが存在しないため、CSVから新規作成します")
+            self._create_index_from_csv()
 
     def search_products(self, query: str, top_k: int = 5) -> List[SearchResult]:
         """キーワードベース検索（シンプルで確実な検索）"""
@@ -141,7 +149,8 @@ class FAISSRAGSystem:
             "勃起", "ed", "erectile", "性機能", "中折れ", "勃起不全",
             "バイアグラ", "シアリス", "レビトラ", "ステンドラ", "ザイデナ",
             "シルデナフィル", "タダラフィル", "バルデナフィル", "アバナフィル", "ウデナフィル",
-            "性行為", "勃起力", "硬さ", "持続", "男性機能"
+            "性行為", "勃起力", "硬さ", "持続", "男性機能", "ed薬", "ed治療",
+            "即効性ed", "長時間持続", "副作用少ない", "アジア人向けed"
         ]
         
         # 女性向け・男性サプリ関連キーワード
@@ -154,7 +163,7 @@ class FAISSRAGSystem:
         ]
         
         exclude_products_for_aga = ["ケアプロスト", "careplus"]
-        exclude_categories_for_ed = ["女性向け薬品", "男性サプリ", "美容・コスメ"]
+        exclude_categories_for_ed = ["女性向け薬品", "男性サプリ", "美容・コスメ", "美容・スキンケア", "性病・感染症の治療薬", "AGA治療薬", "ダイエット", "利尿剤", "バストアップ"]
         exclude_categories_for_female = ["ED治療薬", "AGA治療薬", "男性サプリ"]
         exclude_categories_for_supplement = ["ED治療薬", "女性向け薬品"]
         
@@ -179,27 +188,37 @@ class FAISSRAGSystem:
             
             elif is_ed_query:
                 # ED検索で女性用商品とサプリを除外
-                category = result.category.lower() if result.category else ""
-                if any(excluded in category for excluded in exclude_categories_for_ed):
+                category = result.category if result.category else ""
+                if any(excluded_cat == category for excluded_cat in exclude_categories_for_ed):
                     should_exclude = True
                     logger.info(f"ED検索で不適切カテゴリを除外: {result.product_name} ({result.category})")
             
             elif is_female_query:
                 # 女性向け検索で男性用商品を除外
-                category = result.category.lower() if result.category else ""
-                if any(excluded in category for excluded in exclude_categories_for_female):
+                category = result.category if result.category else ""
+                if any(excluded_cat == category for excluded_cat in exclude_categories_for_female):
                     should_exclude = True
                     logger.info(f"女性向け検索で男性用商品を除外: {result.product_name} ({result.category})")
                     
             elif is_supplement_query:
                 # サプリ検索で医療用ED薬を除外
-                category = result.category.lower() if result.category else ""
-                if any(excluded in category for excluded in exclude_categories_for_supplement):
+                category = result.category if result.category else ""
+                if any(excluded_cat == category for excluded_cat in exclude_categories_for_supplement):
                     should_exclude = True
                     logger.info(f"サプリ検索で医療用薬品を除外: {result.product_name} ({result.category})")
             
             if not should_exclude:
                 filtered_results.append(result)
+        
+        # ED検索の場合、ED治療薬を優先的に上位表示
+        if is_ed_query:
+            def ed_priority_sort(result):
+                if result.category == "ED治療薬":
+                    return 0  # 最高優先度
+                else:
+                    return 1  # 低優先度
+            
+            filtered_results.sort(key=ed_priority_sort)
         
         return filtered_results
     
