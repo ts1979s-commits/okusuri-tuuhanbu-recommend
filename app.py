@@ -88,6 +88,17 @@ st.markdown("""
     .query-type-badge {
         background-color: #2196F3;
         color: white;
+    }
+    /* 検索ボタンを赤色に強制設定 */
+    .stButton > button[kind="secondary"] {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border-color: #ff4b4b !important;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        background-color: #ff6b6b !important;
+        border-color: #ff6b6b !important;
+    }
         padding: 0.2rem 0.5rem;
         border-radius: 15px;
         font-size: 0.8rem;
