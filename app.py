@@ -12,11 +12,24 @@ import time
 # パスを追加
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.faiss_rag_system import FAISSRAGSystem
-from src.scraper import OkusuriScraper
-from config.settings import get_settings
+try:
+    from src.faiss_rag_system import FAISSRAGSystem
+except ImportError as e:
+    st.error(f"モジュールのインポートエラー: {e}")
+    st.stop()
 
-settings = get_settings()
+try:
+    from src.scraper import OkusuriScraper
+except ImportError:
+    st.warning("スクレイパーモジュールが利用できません")
+    OkusuriScraper = None
+
+try:
+    from config.settings import get_settings
+    settings = get_settings()
+except ImportError:
+    st.warning("設定モジュールが利用できません")
+    settings = None
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)

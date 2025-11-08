@@ -14,12 +14,30 @@ import faiss
 import numpy as np
 from openai import OpenAI
 
-from config.settings import get_settings
+# Streamlit Cloud対応の設定読み込み
+try:
+    import streamlit as st
+    # Streamlit secretsから設定を取得
+    openai_api_key = st.secrets.get("secrets", {}).get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+    log_level = st.secrets.get("secrets", {}).get("LOG_LEVEL", "INFO")
+except:
+    # Streamlitが利用できない場合は環境変数から取得
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
 
-settings = get_settings()
+# 設定のフォールバック
+if not openai_api_key:
+    try:
+        from config.settings import get_settings
+        settings = get_settings()
+        openai_api_key = settings.OPENAI_API_KEY
+        log_level = settings.LOG_LEVEL
+    except:
+        openai_api_key = None
+        log_level = "INFO"
 
 # ログ設定
-logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL))
+logging.basicConfig(level=getattr(logging, log_level))
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -51,10 +69,12 @@ class FAISSRAGSystem:
                 del os.environ[key]
         
         try:
-            # 最小限のパラメータでクライアントを作成
-            # proxies引数は明示的に使用しない
+            # OpenAIクライアントの初期化
+            if not openai_api_key:
+                raise ValueError("OpenAI API key not found in secrets or environment variables")
+            
             self.client = OpenAI(
-                api_key=settings.OPENAI_API_KEY,
+                api_key=openai_api_key,
                 timeout=30.0
             )
             logger.info("OpenAIクライアントを初期化しました")
@@ -63,7 +83,7 @@ class FAISSRAGSystem:
                 # プロキシエラーの場合、より基本的な初期化を試行
                 logger.warning("プロキシエラーを検出。基本的な初期化を試行中...")
                 try:
-                    self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+                    self.client = OpenAI(api_key=openai_api_key)
                     logger.info("基本的なOpenAIクライアント初期化に成功")
                 except Exception as e2:
                     logger.error(f"基本的な初期化も失敗: {e2}")
