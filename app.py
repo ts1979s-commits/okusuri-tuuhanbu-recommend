@@ -476,6 +476,40 @@ def main():
                 with st.expander("🔧 デバッグ情報", expanded=False):
                     st.write(f"**検索クエリ:** '{query}'")
                     st.write(f"**結果数:** {len(results)}")
+                    
+                    # ベクトルデータベース強制再構築ボタン
+                    st.markdown("**🛠️ システム修復:**")
+                    if st.button("⚡ ベクトルDB強制再構築", help="検索精度に問題がある場合、ベクトルデータベースを最新のCSVから再構築", type="secondary"):
+                        try:
+                            with st.spinner("ベクトルデータベースを再構築中..."):
+                                # キャッシュされたファイルを削除
+                                import os
+                                files_to_remove = [
+                                    "./data/faiss_index.bin",
+                                    "./data/metadata.pkl", 
+                                    "./data/documents.pkl"
+                                ]
+                                for file_path in files_to_remove:
+                                    if os.path.exists(file_path):
+                                        os.remove(file_path)
+                                        st.write(f"✅ {file_path} を削除")
+                                
+                                # キャッシュクリア
+                                st.cache_data.clear()
+                                st.cache_resource.clear()
+                                
+                                # セッション状態をリセット
+                                for key in list(st.session_state.keys()):
+                                    if key not in ['search_input']:
+                                        del st.session_state[key]
+                                        
+                                st.success("✅ ベクトルデータベース再構築完了！次回検索時に最新データから自動構築されます。")
+                                st.info("🔄 ページをリロードして再検索してください")
+                                time.sleep(2)
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ 再構築エラー: {e}")
+                    
                     if results:
                         st.write("**最初の結果サンプル:**")
                         first_result = results[0]
