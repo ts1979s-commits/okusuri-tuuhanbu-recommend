@@ -106,18 +106,58 @@ class FAISSRAGSystem:
             # 2. 結果がある場合はそれを返す
             if simple_results:
                 logger.info(f"文字列マッチング検索で{len(simple_results)}件の結果を取得")
-                return simple_results
+                filtered_results = self._filter_search_results(query, simple_results)
+                return filtered_results
             
             # 3. 結果がない場合、ベクトル検索にフォールバック
             logger.info("文字列マッチングなし。ベクトル検索にフォールバック")
             vector_results = self._vector_search(query, top_k)
+            filtered_results = self._filter_search_results(query, vector_results)
             
-            logger.info(f"検索完了: {len(vector_results)}件の結果")
-            return vector_results
+            logger.info(f"検索完了: {len(filtered_results)}件の結果（フィルタリング適用後）")
+            return filtered_results
             
         except Exception as e:
             logger.error(f"検索エラー: {e}")
             return []
+
+    def _filter_search_results(self, query: str, results: List[SearchResult]) -> List[SearchResult]:
+        """特定のクエリに対して不適切な結果を除外する"""
+        if not results:
+            return results
+        
+        query_lower = query.lower().strip()
+        filtered_results = []
+        
+        # AGAや抜け毛関連の検索でケアプロストを除外
+        aga_hair_keywords = [
+            "抜け毛", "薄毛", "脱毛", "aga", "育毛", "発毛", 
+            "髪", "頭髪", "ハゲ", "生え際", "頭頂部", "毛量",
+            "フィナステリド", "ミノキシジル", "デュタステリド"
+        ]
+        
+        exclude_products_for_aga = ["ケアプロスト", "careplus"]
+        
+        # AGA関連検索の場合、まつ毛美容液を除外
+        is_aga_query = any(keyword in query_lower for keyword in aga_hair_keywords)
+        
+        for result in results:
+            should_exclude = False
+            
+            if is_aga_query:
+                # AGA検索でまつ毛美容液を除外
+                product_name = result.product_name.lower() if result.product_name else ""
+                category = result.category.lower() if result.category else ""
+                
+                if (any(excluded in product_name for excluded in exclude_products_for_aga) or
+                    "まつげ" in category or "まつ毛" in category):
+                    should_exclude = True
+                    logger.info(f"AGA検索でまつ毛美容液を除外: {result.product_name}")
+            
+            if not should_exclude:
+                filtered_results.append(result)
+        
+        return filtered_results
     
     def _simple_text_search(self, query: str, top_k: int) -> List[SearchResult]:
         """シンプルな文字列検索（確実に動作する基本検索）"""
