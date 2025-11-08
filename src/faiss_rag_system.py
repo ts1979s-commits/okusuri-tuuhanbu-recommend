@@ -153,6 +153,30 @@ class FAISSRAGSystem:
             "即効性ed", "長時間持続", "副作用少ない", "アジア人向けed"
         ]
         
+        # ダイエット関連のキーワード
+        diet_keywords = [
+            "ダイエット", "痩せ", "痩せたい", "体重", "減量", "肥満", "太っ", "太り",
+            "食欲", "食べ過ぎ", "脂肪", "脂っこい", "カロリー", "メタボ",
+            "便秘", "お通じ", "腸内環境", "デトックス", "排出", "便通",
+            "糖質", "炭水化物", "糖分", "甘い物", "血糖値", "インスリン",
+            "代謝", "燃焼", "エネルギー", "基礎代謝", "新陳代謝"
+        ]
+        
+        # 美容・スキンケア関連のキーワード
+        beauty_keywords = [
+            "美容", "スキンケア", "美肌", "美白", "シミ", "シワ", "ニキビ", "吹き出物",
+            "まつ毛", "まつげ", "日焼け", "紫外線", "むくみ", "バストアップ", "胸",
+            "デトックス", "アンチエイジング", "エイジングケア", "肌荒れ", "毛穴",
+            "コラーゲン", "美容液", "保湿", "乾燥肌", "敏感肌", "ターンオーバー",
+            "肌質改善", "透明感", "くすみ", "たるみ", "小顔", "美しく", "きれい"
+        ]
+        
+        # 便秘・消化器系関連キーワード
+        constipation_keywords = [
+            "便秘", "便通", "便秘改善", "便秘薬", "排便", "お腹のハリ", "腸内環境",
+            "デトックス", "便が出ない", "排便困難", "便通改善", "消化不良", "整腸"
+        ]
+        
         # 女性向け・男性サプリ関連キーワード
         female_keywords = [
             "女性", "妊活", "不感症", "性的興奮", "濡れ", "女性用"
@@ -166,10 +190,14 @@ class FAISSRAGSystem:
         exclude_categories_for_ed = ["女性向け薬品", "男性サプリ", "美容・コスメ", "美容・スキンケア", "性病・感染症の治療薬", "AGA治療薬", "ダイエット", "利尿剤", "バストアップ"]
         exclude_categories_for_female = ["ED治療薬", "AGA治療薬", "男性サプリ"]
         exclude_categories_for_supplement = ["ED治療薬", "女性向け薬品"]
+        exclude_categories_for_constipation = ["ED治療薬", "AGA治療薬", "性病・感染症の治療薬", "美容・スキンケア"]
         
         # 検索クエリの分類
         is_aga_query = any(keyword in query_lower for keyword in aga_hair_keywords)
         is_ed_query = any(keyword in query_lower for keyword in ed_keywords)
+        is_diet_query = any(keyword in query_lower for keyword in diet_keywords)
+        is_beauty_query = any(keyword in query_lower for keyword in beauty_keywords)
+        is_constipation_query = any(keyword in query_lower for keyword in constipation_keywords)
         is_female_query = any(keyword in query_lower for keyword in female_keywords)
         is_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
         
@@ -206,6 +234,13 @@ class FAISSRAGSystem:
                 if any(excluded_cat == category for excluded_cat in exclude_categories_for_supplement):
                     should_exclude = True
                     logger.info(f"サプリ検索で医療用薬品を除外: {result.product_name} ({result.category})")
+                    
+            elif is_constipation_query:
+                # 便秘検索で関連性の低いカテゴリを除外
+                category = result.category if result.category else ""
+                if any(excluded_cat == category for excluded_cat in exclude_categories_for_constipation):
+                    should_exclude = True
+                    logger.info(f"便秘検索で関連性の低いカテゴリを除外: {result.product_name} ({result.category})")
             
             if not should_exclude:
                 filtered_results.append(result)
@@ -244,6 +279,107 @@ class FAISSRAGSystem:
                 
                 needed_count = min(5 - len(ed_drugs_found), len(all_ed_drugs))
                 filtered_results.extend(all_ed_drugs[:needed_count])
+        
+        # 美容検索の場合、美容・スキンケア商品を優先的に上位表示
+        elif is_beauty_query:
+            def beauty_priority_sort(result):
+                category = result.category if result.category else ""
+                
+                # 美容・スキンケア商品に高い優先度を与える
+                if category == "美容・スキンケア":
+                    # サブカテゴリー別の詳細優先度
+                    subcategory = result.metadata.get('subcategory', '').strip() if result.metadata else ""
+                    
+                    # 検索クエリに応じたサブカテゴリー優先度
+                    if any(kw in query_lower for kw in ["シミ", "美白", "エイジング", "アンチエイジング"]):
+                        if "美白・エイジングケア" in subcategory:
+                            return 1  # 美白関連の最優先
+                        elif "美容サプリ" in subcategory:
+                            return 2  # L-グルタチオン等
+                    
+                    elif any(kw in query_lower for kw in ["ニキビ", "吹き出物", "肌荒れ"]):
+                        if "ニキビ" in subcategory:
+                            return 1  # ニキビ治療薬最優先
+                        elif "石鹸" in subcategory:
+                            return 2  # プロポリス石鹸
+                    
+                    elif any(kw in query_lower for kw in ["まつ毛", "まつげ"]):
+                        if "まつげ美容液" in subcategory:
+                            return 1  # まつげ美容液最優先
+                    
+                    elif any(kw in query_lower for kw in ["日焼け", "紫外線", "uv"]):
+                        if "日焼け止め" in subcategory:
+                            return 1  # 日焼け止め最優先
+                    
+                    elif any(kw in query_lower for kw in ["むくみ", "利尿"]):
+                        if "むくみ解消" in subcategory:
+                            return 1  # むくみ解消薬最優先
+                    
+                    elif any(kw in query_lower for kw in ["バスト", "胸", "バストアップ"]):
+                        if "バストアップ" in subcategory:
+                            return 1  # バストアップ最優先
+                    
+                    # CSV順序に基づく基本優先度（美容商品内での順序）
+                    csv_order = result.metadata.get('csv_order', 999) if result.metadata else 999
+                    return 10 + csv_order  # 美容商品は10番台の優先度
+                
+                # 非美容商品は低い優先度
+                return 500 + (result.metadata.get('csv_order', 999) if result.metadata else 999)
+            
+            # 美容優先でソート
+            filtered_results.sort(key=beauty_priority_sort)
+            
+            logger.info(f"美容検索優先度適用: {len([r for r in filtered_results if r.category == '美容・スキンケア'])}件の美容商品を優先表示")
+        
+        # ダイエット検索の場合、ダイエット商品を優先的に上位表示
+        elif is_diet_query:
+            def diet_priority_sort(result):
+                category = result.category if result.category else ""
+                
+                # ダイエット商品に高い優先度を与える
+                if category == "ダイエット":
+                    # サブカテゴリー別の詳細優先度
+                    subcategory = result.metadata.get('subcategory', '').strip() if result.metadata else ""
+                    
+                    # 検索クエリに応じたサブカテゴリー優先度
+                    if any(kw in query_lower for kw in ["食欲", "食べ過ぎ", "食べすぎ", "甘い物", "糖質", "炭水化物"]):
+                        if "ダイエットサプリ" in subcategory:
+                            return 1  # アーユスリム（食欲抑制）最優先
+                        elif "便秘薬" in subcategory:
+                            return 3  # トリファラ
+                    
+                    elif any(kw in query_lower for kw in ["脂肪", "脂っこい", "油", "太っ", "太り", "肥満", "体重"]):
+                        if "ゼニカル・ダイエットピル" in subcategory:
+                            return 1  # オルリガル（脂肪吸収阻害）最優先
+                        elif "ダイエットサプリ" in subcategory:
+                            return 2  # アーユスリム
+                    
+                    elif any(kw in query_lower for kw in ["便秘", "お通じ", "腸内", "デトックス", "排出", "便通"]):
+                        if "便秘薬" in subcategory:
+                            return 1  # トリファラ最優先
+                        elif "ダイエットサプリ" in subcategory:
+                            return 3  # アーユスリム
+                    
+                    elif any(kw in query_lower for kw in ["痩せ", "減量", "ダイエット"]):
+                        # 一般的なダイエット検索ではバランス良く表示
+                        if "ダイエットサプリ" in subcategory:
+                            return 1  # アーユスリム
+                        elif "ゼニカル・ダイエットピル" in subcategory:
+                            return 2  # オルリガル
+                        elif "便秘薬" in subcategory:
+                            return 3  # トリファラ
+                    
+                    # CSV順序に基づく基本優先度（ダイエット商品内での順序）
+                    csv_order = result.metadata.get('csv_order', 999) if result.metadata else 999
+                    return 10 + csv_order  # ダイエット商品は10番台の優先度
+                
+                # 非ダイエット商品は低い優先度
+                return 500 + (result.metadata.get('csv_order', 999) if result.metadata else 999)
+            
+            # ダイエット優先でソート
+            filtered_results.sort(key=diet_priority_sort)
+            
+            logger.info(f"ダイエット検索優先度適用: {len([r for r in filtered_results if r.category == 'ダイエット'])}件のダイエット商品を優先表示")
         
         return filtered_results
     
@@ -444,9 +580,31 @@ class FAISSRAGSystem:
             ]
             is_ed_query = any(keyword in query_lower for keyword in ed_keywords)
             
+            # ダイエット関連キーワードかチェック
+            diet_keywords = [
+                "ダイエット", "痩せ", "痩せたい", "体重", "減量", "肥満", "太っ", "太り",
+                "食欲", "食べ過ぎ", "脂肪", "脂っこい", "便秘", "お通じ", "デトックス"
+            ]
+            is_diet_query = any(keyword in query_lower for keyword in diet_keywords)
+            
+            # 美容関連キーワードかチェック
+            beauty_keywords = [
+                "美容", "スキンケア", "美肌", "美白", "シミ", "シワ", "ニキビ", "吹き出物",
+                "まつ毛", "まつげ", "日焼け", "紫外線", "むくみ", "バストアップ", "胸",
+                "デトックス", "アンチエイジング", "エイジングケア", "肌荒れ", "毛穴"
+            ]
+            is_beauty_query = any(keyword in query_lower for keyword in beauty_keywords)
+            
+            # 便秘・消化器系関連キーワードかチェック
+            constipation_keywords = [
+                "便秘", "便通", "便秘改善", "便秘薬", "排便", "お腹のハリ", "腸内環境",
+                "消化不良", "整腸", "便が出ない", "排便困難", "便通改善"
+            ]
+            is_constipation_query = any(keyword in query_lower for keyword in constipation_keywords)
+            
             # 検索を実行（ED検索の場合はより多くの候補を取得）
-            if is_ed_query:
-                search_k = min(self.index.ntotal, 35)  # ED検索では全商品を取得
+            if is_ed_query or is_beauty_query or is_diet_query or is_constipation_query:
+                search_k = min(self.index.ntotal, 35)  # カテゴリー特化検索では全商品を取得
             else:
                 search_k = min(top_k * 3, self.index.ntotal)  # 通常は3倍の候補を取得
             scores, indices = self.index.search(query_vector, search_k)
@@ -459,13 +617,61 @@ class FAISSRAGSystem:
                     
                 metadata = self.metadata_list[idx]
                 
+                # ダイエット検索の場合、ダイエット商品にスコアボーナス
+                adjusted_score = float(score)
+                if is_diet_query and metadata.get('category') == 'ダイエット':
+                    # サブカテゴリー別の詳細ボーナス
+                    subcategory = metadata.get('subcategory', '').strip()
+                    
+                    # 検索クエリに応じた追加ボーナス
+                    if any(kw in query_lower for kw in ["食欲", "食べ過ぎ", "甘い物"]) and "ダイエットサプリ" in subcategory:
+                        adjusted_score += 0.15  # 食欲抑制関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["脂肪", "脂っこい", "太っ"]) and "ゼニカル・ダイエットピル" in subcategory:
+                        adjusted_score += 0.15  # 脂肪吸収阻害関連の大幅ボーナス
+                
+                # 便秘検索の場合、便秘薬にスコアボーナス
+                elif is_constipation_query and metadata.get('category') == 'ダイエット':
+                    subcategory = metadata.get('subcategory', '').strip()
+                    if "便秘薬" in subcategory:
+                        adjusted_score += 0.20  # 便秘薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["便秘", "お通じ", "腸内"]) and "便秘薬" in subcategory:
+                        adjusted_score += 0.15  # 便秘改善関連の大幅ボーナス
+                    else:
+                        adjusted_score += 0.10  # ダイエット商品全般のボーナス
+                    
+                    logger.info(f"ダイエット商品スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
+                
+                # 美容検索の場合、美容・スキンケア商品にスコアボーナス
+                elif is_beauty_query and metadata.get('category') == '美容・スキンケア':
+                    # サブカテゴリー別の詳細ボーナス
+                    subcategory = metadata.get('subcategory', '').strip()
+                    keywords = metadata.get('keywords', '').lower()
+                    
+                    # 検索クエリに応じた追加ボーナス
+                    if any(kw in query_lower for kw in ["シミ", "美白"]) and "美白" in subcategory:
+                        adjusted_score += 0.15  # 美白関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["ニキビ", "吹き出物"]) and "ニキビ" in subcategory:
+                        adjusted_score += 0.15  # ニキビ関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["まつ毛", "まつげ"]) and "まつげ" in subcategory:
+                        adjusted_score += 0.15  # まつげ関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["日焼け", "紫外線"]) and "日焼け止め" in subcategory:
+                        adjusted_score += 0.15  # 日焼け止め関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["むくみ"]) and "むくみ解消" in subcategory:
+                        adjusted_score += 0.15  # むくみ関連の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["バスト", "胸"]) and "バストアップ" in subcategory:
+                        adjusted_score += 0.15  # バストアップ関連の大幅ボーナス
+                    else:
+                        adjusted_score += 0.10  # 美容商品全般のボーナス
+                    
+                    logger.info(f"美容商品スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
+                
                 search_result = SearchResult(
                     product_name=metadata.get('name', ''),
                     url=metadata.get('url', ''),
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
-                    similarity_score=float(score),
+                    similarity_score=adjusted_score,
                     metadata=metadata
                 )
                 results.append(search_result)
