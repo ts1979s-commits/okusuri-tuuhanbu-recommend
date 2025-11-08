@@ -57,8 +57,8 @@ class FAISSRAGSystem:
     
     def __init__(self):
         """RAGシステムの初期化"""
-        # OpenAIクライアントの初期化
-        if not settings.OPENAI_API_KEY:
+        # OpenAIクライアントの初期化の準備
+        if not openai_api_key:
             logger.error("OPENAI_API_KEYが設定されていません")
             raise ValueError("OPENAI_API_KEYが必要です")
         
@@ -70,9 +70,6 @@ class FAISSRAGSystem:
         
         try:
             # OpenAIクライアントの初期化
-            if not openai_api_key:
-                raise ValueError("OpenAI API key not found in secrets or environment variables")
-            
             self.client = OpenAI(
                 api_key=openai_api_key,
                 timeout=30.0
