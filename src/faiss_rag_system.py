@@ -180,10 +180,16 @@ class FAISSRAGSystem:
         # 性病・感染症治療薬関連キーワード
         std_infection_keywords = [
             "性病", "感染症", "クラミジア", "淋病", "梅毒", "ヘルペス", "カンジダ", 
-            "トリコモナス", "コンジローマ", "hiv", "エイズ", "水虫", "いんきんたむし",
-            "抗生物質", "抗ウイルス薬", "抗真菌薬", "抗原虫薬", "細菌感染", "真菌感染",
+            "トリコモナス", "コンジローマ", "hiv", "エイズ", 
+            "抗生物質", "抗ウイルス薬", "抗原虫薬", "細菌感染",
             "ウイルス感染", "尿道炎", "膣炎", "帯状疱疹", "口唇ヘルペス", "性器ヘルペス",
             "おりもの", "かゆみ", "性感染症", "性行為感染症", "std", "sti"
+        ]
+        
+        # 水虫・いんきんたむし専用キーワード
+        fungal_infection_keywords = [
+            "水虫", "いんきんたむし", "真菌感染", "かゆみ", "皮膚真菌", "白癬菌",
+            "足の指", "股間", "陰部", "フルコナゾール", "抗真菌薬"
         ]
         
         # 女性向け・男性サプリ関連キーワード
@@ -209,6 +215,7 @@ class FAISSRAGSystem:
         is_beauty_query = any(keyword in query_lower for keyword in beauty_keywords)
         is_constipation_query = any(keyword in query_lower for keyword in constipation_keywords)
         is_std_query = any(keyword in query_lower for keyword in std_infection_keywords)
+        is_fungal_query = any(keyword in query_lower for keyword in fungal_infection_keywords)
         is_female_query = any(keyword in query_lower for keyword in female_keywords)
         is_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
         
@@ -259,6 +266,12 @@ class FAISSRAGSystem:
                 if any(excluded_cat == category for excluded_cat in exclude_categories_for_std):
                     should_exclude = True
                     logger.info(f"性病・感染症検索で関連性の低いカテゴリを除外: {result.product_name} ({result.category})")
+                
+            elif is_fungal_query:
+                # 水虫・いんきんたむし検索：フォルカンのみ表示
+                if result.product_name != "フォルカン":
+                    should_exclude = True
+                    logger.info(f"水虫・いんきんたむし検索でフォルカン以外を除外: {result.product_name} ({result.category})")
             
             if not should_exclude:
                 filtered_results.append(result)
