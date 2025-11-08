@@ -8,27 +8,54 @@ import os
 from typing import List, Dict, Any
 import logging
 import time
+import traceback
 
-# パスを追加
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Streamlitページ設定（最初に一度だけ）
+try:
+    st.set_page_config(
+        page_title="お薬通販部 商品レコメンド",
+        page_icon="💊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except st.errors.StreamlitAPIException:
+    # 既に設定済みの場合は無視
+    pass
 
-from src.faiss_rag_system import FAISSRAGSystem
-from src.scraper import OkusuriScraper
-from config.settings import get_settings
+# パス設定を安全に行う
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, current_dir)
+    if os.path.dirname(current_dir) not in sys.path:
+        sys.path.insert(0, os.path.dirname(current_dir))
+except Exception as e:
+    st.error(f"パス設定エラー: {e}")
 
-settings = get_settings()
+# 安全なインポート
+try:
+    from src.faiss_rag_system import FAISSRAGSystem
+    FAISS_AVAILABLE = True
+except ImportError as e:
+    st.warning("⚠️ AI機能が利用できません (FAISS RAGシステム)")
+    FAISS_AVAILABLE = False
+
+try:
+    from src.scraper import OkusuriScraper
+    SCRAPER_AVAILABLE = True
+except ImportError as e:
+    st.warning("⚠️ スクレイパー機能が利用できません")
+    SCRAPER_AVAILABLE = False
+
+try:
+    from config.settings import get_settings
+    settings = get_settings()
+except ImportError as e:
+    st.info("設定ファイルから読み込み中...")
+    settings = None
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Streamlitページ設定
-st.set_page_config(
-    page_title="お薬通販部 商品レコメンド",
-    page_icon="💊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # スタイル設定
 st.markdown("""
@@ -109,7 +136,14 @@ st.markdown("""
 @st.cache_resource
 def initialize_recommendation_engine():
     """レコメンドエンジンを初期化（キャッシュ付き、エラー処理強化）"""
+    if not FAISS_AVAILABLE:
+        st.warning("🔧 **FAISS機能が利用できません**")
+        st.info("基本検索機能のみご利用いただけます。")
+        return None
+    
     try:
+        from src.faiss_rag_system import FAISSRAGSystem
+        
         # エンジン初期化
         engine = FAISSRAGSystem()
         
@@ -277,6 +311,11 @@ def scrape_products_interface():
 def main():
     """メインアプリケーション"""
     
+    # システム状態確認を先に実行
+    if not FAISS_AVAILABLE and not SCRAPER_AVAILABLE:
+        st.error("❌ システムの必須コンポーネントが利用できません")
+        st.info("基本機能のみで動作します")
+    
     # ヘッダー
     st.markdown('<h1 class="main-header">💊 お薬通販部 商品レコメンド AI</h1>', unsafe_allow_html=True)
     st.markdown("---")
@@ -291,8 +330,8 @@ def main():
         
         st.markdown("---")
         
-        # データ取得機能
-        if st.checkbox("商品データ取得"):
+        # データ取得機能（スクレイパーが利用可能な場合のみ）
+        if SCRAPER_AVAILABLE and st.checkbox("商品データ取得"):
             scrape_products_interface()
         
         st.markdown("---")
@@ -563,4 +602,8 @@ def main():
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        st.error(f"❌ アプリケーション起動エラー: {str(e)}")
+        st.info("システムの基本機能のみで動作します")
