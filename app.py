@@ -228,7 +228,7 @@ def load_csv_data():
         return None
 
 def basic_search(query, top_k=5):
-    """CSVから基本検索を行う"""
+    """CSVから基本検索を行う（性病・感染症の検索精度向上）"""
     if not PANDAS_AVAILABLE:
         return []
         
@@ -240,6 +240,21 @@ def basic_search(query, top_k=5):
     query_lower = query.lower()
     results = []
     
+    # 性病・感染症専用の検索キーワード辞書
+    std_keywords = {
+        '性病': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV', 'エイズ'],
+        '感染症': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV'],
+        'クラミジア': ['アジー', 'ジスロマック', 'アジスロマイシン'],
+        '淋病': ['アジー', 'ジスロマック', 'アジスロマイシン'],
+        '梅毒': ['ビクシリン', 'アンピシリン'],
+        'ヘルペス': ['バルクロビル', 'バラシクロビル'],
+        'カンジダ': ['フォルカン', 'フルコナゾール'],
+        'コンジローマ': ['イミクアッド', 'イミキモド'],
+        'トリコモナス': ['フラジール', 'メトロニダゾール'],
+        'hiv': ['テンビルEM', 'テノホビル', 'エムトリシタビン'],
+        'エイズ': ['テンビルEM', 'テノホビル', 'エムトリシタビン']
+    }
+    
     for _, row in df.iterrows():
         score = 0.0
         search_text = ""
@@ -250,7 +265,7 @@ def basic_search(query, top_k=5):
             if pd.notna(row[field]):
                 search_text += str(row[field]).lower() + " "
         
-        # キーワードマッチング
+        # 基本キーワードマッチング
         query_words = re.findall(r'\w+', query_lower)
         for word in query_words:
             if word in search_text:
@@ -260,6 +275,40 @@ def basic_search(query, top_k=5):
         if query_lower in search_text:
             score += 3.0
             
+        # 性病・感染症専用の高精度検索
+        for key_word, related_drugs in std_keywords.items():
+            if key_word in query_lower:
+                # カテゴリマッチの高ボーナス
+                if '性病・感染症' in str(row['カテゴリ名']):
+                    score += 10.0
+                
+                # 関連薬剤名マッチ
+                for drug in related_drugs:
+                    if drug.lower() in search_text:
+                        score += 5.0
+                        
+                # サブカテゴリマッチ
+                if key_word in str(row['サブカテゴリ名']).lower():
+                    score += 8.0
+        
+        # 症状ベース検索の強化
+        symptom_mapping = {
+            'かゆみ': ['カンジダ', 'トリコモナス'],
+            'おりもの': ['カンジダ', 'トリコモナス', 'クラミジア'],
+            '尿道炎': ['クラミジア', '淋病'],
+            'いぼ': ['コンジローマ'],
+            '水ぶくれ': ['ヘルペス'],
+            '膣炎': ['カンジダ', 'トリコモナス'],
+            '咽頭炎': ['クラミジア', '淋病'],
+            '喉の痛み': ['クラミジア', '淋病']
+        }
+        
+        for symptom, related_conditions in symptom_mapping.items():
+            if symptom in query_lower:
+                for condition in related_conditions:
+                    if condition.lower() in search_text:
+                        score += 7.0
+                        
         if score > 0:
             result = BasicSearchResult(
                 product_name=row['商品名'],
@@ -441,15 +490,26 @@ def main():
         st.write("- 抜け毛が増えた")
         st.write("- 足のむくみが取れない")
         st.write("- 肌の再生を促したい")
+        st.write("- かゆみが止まらない")
+        st.write("- 喉の痛みが治らない")
+        
+        st.write("**性病・感染症での検索例:**")
+        st.write("- 性病")
+        st.write("- クラミジア")
+        st.write("- ヘルペス")
+        st.write("- カンジダ")
+        st.write("- 尿道炎")
         
         st.write("**商品名での検索例:**")
         st.write("- カマグラゴールド")
         st.write("- フィナクス+ミノクソール")
+        st.write("- アジー")
         st.write("- オルリガル")
         
         st.write("**カテゴリでの検索例:**")
         st.write("- ED治療薬")
         st.write("- AGA治療薬")
+        st.write("- 性病・感染症の治療薬")
         st.write("- ニキビ")
         st.write("- ダイエット")
     
