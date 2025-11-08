@@ -242,15 +242,17 @@ def basic_search(query, top_k=5):
     
     # 性病・感染症の厳密な検索マッピング
     strict_std_mapping = {
-        'クラミジア': ['アジー', 'ジスロマック'],
-        '淋病': ['アジー', 'ジスロマック'],
-        '梅毒': ['ビクシリン・ジェネリック（アンピシリン）'],
-        'ヘルペス': ['バルクロビル'],
-        'カンジダ': ['フォルカン'],
-        'コンジローマ': ['イミクアッド'],
-        'トリコモナス': ['フラジール'],
-        'hiv': ['テンビルEM'],
-        'エイズ': ['テンビルEM']
+        'クラミジア': [{'product': 'アジー', 'subcategory': 'クラミジア治療薬'}, 
+                     {'product': 'ジスロマック', 'subcategory': 'クラミジア治療薬'}],
+        '淋病': [{'product': 'アジー', 'subcategory': '淋病'}, 
+                {'product': 'ジスロマック', 'subcategory': '淋病'}],
+        '梅毒': [{'product': 'ビクシリン・ジェネリック（アンピシリン）', 'subcategory': '梅毒'}],
+        'ヘルペス': [{'product': 'バルクロビル', 'subcategory': 'ヘルペス'}],
+        'カンジダ': [{'product': 'フォルカン', 'subcategory': 'カンジダ・真菌感染症'}],
+        'コンジローマ': [{'product': 'イミクアッド', 'subcategory': 'コンジローマ'}],
+        'トリコモナス': [{'product': 'フラジール', 'subcategory': 'トリコモナス'}],
+        'hiv': [{'product': 'テンビルEM', 'subcategory': 'HIV（エイズ）'}],
+        'エイズ': [{'product': 'テンビルEM', 'subcategory': 'HIV（エイズ）'}]
     }
     
     # 厳密検索かどうかを判定
@@ -266,27 +268,33 @@ def basic_search(query, top_k=5):
     # 厳密検索の場合
     if is_strict_search:
         allowed_products = strict_std_mapping[matched_condition]
+        found_products = set()  # 重複防止用
         
-        for _, row in df.iterrows():
-            # 指定された商品名に完全一致する場合のみ
-            product_name = str(row['商品名'])
-            if any(allowed_product in product_name for allowed_product in allowed_products):
-                # サブカテゴリも確認（より厳密に）
-                sub_category = str(row['サブカテゴリ名']).lower()
-                if (matched_condition in str(row['検索キーワード']).lower() or 
-                    '性病・感染症' in str(row['カテゴリ名']) or
-                    matched_condition in sub_category):
+        for product_info in allowed_products:
+            product_name = product_info['product']
+            subcategory = product_info['subcategory']
+            
+            for _, row in df.iterrows():
+                # 商品名が一致し、まだ見つかっていない場合
+                if (product_name in str(row['商品名']) and 
+                    product_name not in found_products and
+                    subcategory in str(row['サブカテゴリ名'])):
                     
-                    result = BasicSearchResult(
-                        product_name=row['商品名'],
-                        effect=row['効果'],
-                        ingredient=row['有効成分'],
-                        category=row['カテゴリ名'],
-                        description=row['説明文'],
-                        url=row['商品URL'],
-                        similarity_score=100.0  # 厳密一致なので最高スコア
-                    )
-                    results.append(result)
+                    # 性病・感染症カテゴリであることを確認
+                    if '性病・感染症' in str(row['カテゴリ名']):
+                        found_products.add(product_name)
+                        
+                        result = BasicSearchResult(
+                            product_name=row['商品名'],
+                            effect=row['効果'],
+                            ingredient=row['有効成分'],
+                            category=row['カテゴリ名'],
+                            description=row['説明文'],
+                            url=row['商品URL'],
+                            similarity_score=100.0  # 厳密一致なので最高スコア
+                        )
+                        results.append(result)
+                        break  # この商品は見つかったので次へ
         
         return results[:top_k]
     
