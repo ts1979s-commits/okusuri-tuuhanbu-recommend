@@ -315,9 +315,9 @@ def basic_search(query, top_k=5):
                                 description=row['説明文'],
                                 url=row['商品URL'],
                                 similarity_score=100.0  # 厳密一致なので最高スコア
-                        )
-                        results.append(result)
-                        break  # この商品は見つかったので次へ
+                            )
+                            results.append(result)
+                            break  # この商品は見つかったので次へ
         
         return results[:top_k]
     
