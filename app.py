@@ -245,7 +245,8 @@ def basic_search(query, top_k=5):
         'クラミジア': [{'product': 'アジー', 'subcategory': 'クラミジア治療薬'}, 
                      {'product': 'ジスロマック', 'subcategory': 'クラミジア治療薬'}],
         '淋病': [{'product': 'アジー', 'subcategory': '淋病'}, 
-                {'product': 'ジスロマック', 'subcategory': '淋病'}],
+                {'product': 'ジスロマック', 'subcategory': '淋病'},
+                {'product': 'ビクシリン・ジェネリック（アンピシリン）', 'subcategory': '梅毒'}],
         '梅毒': [{'product': 'ビクシリン・ジェネリック（アンピシリン）', 'subcategory': '梅毒'}],
         'ヘルペス': [{'product': 'バルクロビル', 'subcategory': 'ヘルペス'}],
         'カンジダ': [{'product': 'フォルカン', 'subcategory': 'カンジダ・真菌感染症'}],
@@ -275,23 +276,45 @@ def basic_search(query, top_k=5):
             subcategory = product_info['subcategory']
             
             for _, row in df.iterrows():
+                # ビクシリン・ジェネリックの場合は部分一致を許可
+                is_product_match = False
+                if 'ビクシリン' in product_name:
+                    # ビクシリンの場合は「ビクシリン」または「アンピシリン」を含む商品名を検索
+                    if ('ビクシリン' in str(row['商品名']) or 'アンピシリン' in str(row['商品名'])):
+                        is_product_match = True
+                else:
+                    # その他の商品は完全一致
+                    is_product_match = product_name in str(row['商品名'])
+                
                 # 商品名が一致し、まだ見つかっていない場合
-                if (product_name in str(row['商品名']) and 
-                    product_name not in found_products and
-                    subcategory in str(row['サブカテゴリ名'])):
+                if (is_product_match and 
+                    product_name not in found_products):
                     
                     # 性病・感染症カテゴリであることを確認
                     if '性病・感染症' in str(row['カテゴリ名']):
-                        found_products.add(product_name)
+                        # サブカテゴリチェック（ビクシリンの場合は柔軟に）
+                        subcategory_match = False
+                        if 'ビクシリン' in product_name:
+                            # ビクシリンは梅毒カテゴリまたは商品名にアンピシリンが含まれていればOK
+                            if ('梅毒' in str(row['サブカテゴリ名']) or 
+                                'アンピシリン' in str(row['商品名']) or
+                                '淋病' in str(row['サブカテゴリ名'])):
+                                subcategory_match = True
+                        else:
+                            # その他は厳密にサブカテゴリマッチ
+                            subcategory_match = subcategory in str(row['サブカテゴリ名'])
                         
-                        result = BasicSearchResult(
-                            product_name=row['商品名'],
-                            effect=row['効果'],
-                            ingredient=row['有効成分'],
-                            category=row['カテゴリ名'],
-                            description=row['説明文'],
-                            url=row['商品URL'],
-                            similarity_score=100.0  # 厳密一致なので最高スコア
+                        if subcategory_match:
+                            found_products.add(product_name)
+                            
+                            result = BasicSearchResult(
+                                product_name=row['商品名'],
+                                effect=row['効果'],
+                                ingredient=row['有効成分'],
+                                category=row['カテゴリ名'],
+                                description=row['説明文'],
+                                url=row['商品URL'],
+                                similarity_score=100.0  # 厳密一致なので最高スコア
                         )
                         results.append(result)
                         break  # この商品は見つかったので次へ
