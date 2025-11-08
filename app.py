@@ -240,19 +240,61 @@ def basic_search(query, top_k=5):
     query_lower = query.lower()
     results = []
     
+    # 性病・感染症の厳密な検索マッピング
+    strict_std_mapping = {
+        'クラミジア': ['アジー', 'ジスロマック'],
+        '淋病': ['アジー', 'ジスロマック'],
+        '梅毒': ['ビクシリン・ジェネリック（アンピシリン）'],
+        'ヘルペス': ['バルクロビル'],
+        'カンジダ': ['フォルカン'],
+        'コンジローマ': ['イミクアッド'],
+        'トリコモナス': ['フラジール'],
+        'hiv': ['テンビルEM'],
+        'エイズ': ['テンビルEM']
+    }
+    
+    # 厳密検索かどうかを判定
+    is_strict_search = False
+    matched_condition = None
+    
+    for condition in strict_std_mapping.keys():
+        if condition in query_lower:
+            is_strict_search = True
+            matched_condition = condition
+            break
+    
+    # 厳密検索の場合
+    if is_strict_search:
+        allowed_products = strict_std_mapping[matched_condition]
+        
+        for _, row in df.iterrows():
+            # 指定された商品名に完全一致する場合のみ
+            product_name = str(row['商品名'])
+            if any(allowed_product in product_name for allowed_product in allowed_products):
+                # サブカテゴリも確認（より厳密に）
+                sub_category = str(row['サブカテゴリ名']).lower()
+                if (matched_condition in str(row['検索キーワード']).lower() or 
+                    '性病・感染症' in str(row['カテゴリ名']) or
+                    matched_condition in sub_category):
+                    
+                    result = BasicSearchResult(
+                        product_name=row['商品名'],
+                        effect=row['効果'],
+                        ingredient=row['有効成分'],
+                        category=row['カテゴリ名'],
+                        description=row['説明文'],
+                        url=row['商品URL'],
+                        similarity_score=100.0  # 厳密一致なので最高スコア
+                    )
+                    results.append(result)
+        
+        return results[:top_k]
+    
+    # 通常の検索（厳密検索でない場合）
     # 性病・感染症専用の検索キーワード辞書
     std_keywords = {
         '性病': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV', 'エイズ'],
-        '感染症': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV'],
-        'クラミジア': ['アジー', 'ジスロマック', 'アジスロマイシン'],
-        '淋病': ['アジー', 'ジスロマック', 'アジスロマイシン'],
-        '梅毒': ['ビクシリン', 'アンピシリン'],
-        'ヘルペス': ['バルクロビル', 'バラシクロビル'],
-        'カンジダ': ['フォルカン', 'フルコナゾール'],
-        'コンジローマ': ['イミクアッド', 'イミキモド'],
-        'トリコモナス': ['フラジール', 'メトロニダゾール'],
-        'hiv': ['テンビルEM', 'テノホビル', 'エムトリシタビン'],
-        'エイズ': ['テンビルEM', 'テノホビル', 'エムトリシタビン']
+        '感染症': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV']
     }
     
     for _, row in df.iterrows():
@@ -276,20 +318,16 @@ def basic_search(query, top_k=5):
             score += 3.0
             
         # 性病・感染症専用の高精度検索
-        for key_word, related_drugs in std_keywords.items():
+        for key_word, related_conditions in std_keywords.items():
             if key_word in query_lower:
                 # カテゴリマッチの高ボーナス
                 if '性病・感染症' in str(row['カテゴリ名']):
                     score += 10.0
-                
-                # 関連薬剤名マッチ
-                for drug in related_drugs:
-                    if drug.lower() in search_text:
-                        score += 5.0
                         
                 # サブカテゴリマッチ
-                if key_word in str(row['サブカテゴリ名']).lower():
-                    score += 8.0
+                for condition in related_conditions:
+                    if condition in str(row['サブカテゴリ名']).lower():
+                        score += 8.0
         
         # 症状ベース検索の強化
         symptom_mapping = {
@@ -308,6 +346,20 @@ def basic_search(query, top_k=5):
                 for condition in related_conditions:
                     if condition.lower() in search_text:
                         score += 7.0
+                        
+        if score > 0:
+            result = BasicSearchResult(
+                product_name=row['商品名'],
+                effect=row['効果'],
+                ingredient=row['有効成分'],
+                category=row['カテゴリ名'],
+                description=row['説明文'],
+                url=row['商品URL'],
+                similarity_score=score
+            )
+            results.append(result)
+    
+    # スコア順にソート
                         
         if score > 0:
             result = BasicSearchResult(
