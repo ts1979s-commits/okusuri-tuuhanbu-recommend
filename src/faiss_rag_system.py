@@ -30,6 +30,7 @@ class SearchResult:
     price: Optional[str]
     description: Optional[str]
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     similarity_score: float = 0.0
     metadata: Optional[Dict[str, Any]] = None
 
@@ -201,6 +202,13 @@ class FAISSRAGSystem:
             "精子", "精液", "男性不妊", "天然ハーブ", "サプリ"
         ]
         
+        # サプリメント検索専用キーワード
+        supplement_keywords = [
+            "サプリ", "サプリメント", "栄養補助", "健康食品", "ビタミン", "ミネラル",
+            "天然成分", "ハーブ", "漢方", "アミノ酸", "亜鉛", "リジン", "アシュワガンダ",
+            "プラセンタ", "グルタチオン", "精力サプリ", "男性サプリ", "美容サプリ", "健康サプリ"
+        ]
+        
         exclude_products_for_aga = ["ケアプロスト", "careplus"]
         exclude_categories_for_ed = ["女性向け薬品", "男性サプリ", "美容・コスメ", "美容・スキンケア", "性病・感染症の治療薬", "AGA治療薬", "ダイエット", "利尿剤", "バストアップ"]
         exclude_categories_for_female = ["ED治療薬", "AGA治療薬", "男性サプリ"]
@@ -217,7 +225,8 @@ class FAISSRAGSystem:
         is_std_query = any(keyword in query_lower for keyword in std_infection_keywords)
         is_fungal_query = any(keyword in query_lower for keyword in fungal_infection_keywords)
         is_female_query = any(keyword in query_lower for keyword in female_keywords)
-        is_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
+        is_supplement_query = any(keyword in query_lower for keyword in supplement_keywords)
+        is_male_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
         
         for result in results:
             should_exclude = False
@@ -247,11 +256,37 @@ class FAISSRAGSystem:
                     logger.info(f"女性向け検索で男性用商品を除外: {result.product_name} ({result.category})")
                     
             elif is_supplement_query:
-                # サプリ検索で医療用ED薬を除外
+                # サプリメント検索：真のサプリメント商品のみを表示
+                category = result.category if result.category else ""
+                subcategory = result.subcategory if result.subcategory else ""
+                product_name = result.product_name if result.product_name else ""
+                
+                # 真のサプリメント商品を特定
+                true_supplement_categories = ['EDサプリ', '男性薄毛サプリ', '美容サプリ', 'ダイエットサプリ']
+                true_supplement_subcategories = ['EDサプリ', '男性薄毛サプリ', '美容サプリ', 'ダイエットサプリ', '便秘薬', 'バストアップ']
+                
+                # サプリメント系商品名を追加判定
+                supplement_product_names = ['トリファラ', 'プエラリアミリフィカタブレット', 'アーユスリム', 'スペマン', 'プレミアリジン', 'L-グルタチオン']
+                
+                is_true_supplement = (category in true_supplement_categories or 
+                                    subcategory in true_supplement_subcategories or
+                                    product_name in supplement_product_names)
+                
+                # 治療薬カテゴリから明確な医薬品を除外（ただし、サプリメント商品は含める）
+                exclusion_categories = ['ED治療薬', 'AGA治療薬', '性病・感染症の治療薬', '媚薬']
+                is_medical_treatment = category in exclusion_categories
+                
+                # サプリメント検索では真のサプリのみ表示
+                if not is_true_supplement or is_medical_treatment:
+                    should_exclude = True
+                    logger.info(f"サプリメント検索で治療薬を除外: {result.product_name} ({result.category})")
+                    
+            elif is_male_supplement_query:
+                # 男性サプリ検索で医療用ED薬を除外
                 category = result.category if result.category else ""
                 if any(excluded_cat == category for excluded_cat in exclude_categories_for_supplement):
                     should_exclude = True
-                    logger.info(f"サプリ検索で医療用薬品を除外: {result.product_name} ({result.category})")
+                    logger.info(f"男性サプリ検索で医療用薬品を除外: {result.product_name} ({result.category})")
                     
             elif is_constipation_query:
                 # 便秘検索で関連性の低いカテゴリを除外
@@ -533,6 +568,7 @@ class FAISSRAGSystem:
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
+                    subcategory=metadata.get('subcategory', ''),
                     similarity_score=score,
                     metadata=metadata
                 )
@@ -631,6 +667,7 @@ class FAISSRAGSystem:
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
+                    subcategory=metadata.get('subcategory', ''),
                     similarity_score=match_score,
                     metadata=metadata
                 )
@@ -723,8 +760,16 @@ class FAISSRAGSystem:
             ]
             is_std_query = any(keyword in query_lower for keyword in std_keywords)
             
+            # サプリメント関連キーワードかチェック
+            supplement_keywords = [
+                "サプリ", "サプリメント", "栄養補助", "健康食品", "ビタミン", "ミネラル",
+                "天然成分", "ハーブ", "漢方", "アミノ酸", "亜鉛", "リジン", "アシュワガンダ",
+                "プラセンタ", "グルタチオン", "精力サプリ", "男性サプリ", "美容サプリ", "健康サプリ"
+            ]
+            is_supplement_query = any(keyword in query_lower for keyword in supplement_keywords)
+            
             # 検索を実行（ED検索の場合はより多くの候補を取得）
-            if is_ed_query or is_beauty_query or is_diet_query or is_constipation_query or is_std_query:
+            if is_ed_query or is_beauty_query or is_diet_query or is_constipation_query or is_std_query or is_supplement_query:
                 search_k = min(self.index.ntotal, 35)  # カテゴリー特化検索では全商品を取得
             else:
                 search_k = min(top_k * 3, self.index.ntotal)  # 通常は3倍の候補を取得
@@ -818,12 +863,50 @@ class FAISSRAGSystem:
                     
                     logger.info(f"感染症治療薬スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
                 
+                # サプリメント検索の場合、真のサプリメント商品にスコアボーナス
+                elif is_supplement_query:
+                    category = metadata.get('category', '')
+                    subcategory = metadata.get('subcategory', '')
+                    product_name = metadata.get('name', '')
+                    
+                    # 真のサプリメント商品を特定
+                    true_supplement_categories = ['EDサプリ', '男性薄毛サプリ', '美容サプリ', 'ダイエットサプリ']
+                    true_supplement_subcategories = ['EDサプリ', '男性薄毛サプリ', '美容サプリ', 'ダイエットサプリ', '便秘薬', 'バストアップ']
+                    supplement_product_names = ['トリファラ', 'プエラリアミリフィカタブレット', 'アーユスリム', 'スペマン', 'プレミアリジン', 'L-グルタチオン']
+                    
+                    is_true_supplement = (category in true_supplement_categories or 
+                                        subcategory in true_supplement_subcategories or
+                                        product_name in supplement_product_names)
+                    
+                    if is_true_supplement:
+                        adjusted_score += 0.25  # 真のサプリメント商品に大幅ボーナス
+                        
+                        # サプリタイプ別の追加ボーナス
+                        if any(kw in query_lower for kw in ["男性", "精力", "精子"]) and ("EDサプリ" in category or "EDサプリ" in subcategory):
+                            adjusted_score += 0.15  # 男性向けサプリの追加ボーナス
+                        elif any(kw in query_lower for kw in ["薄毛", "aga", "育毛"]) and ("男性薄毛サプリ" in category or "男性薄毛サプリ" in subcategory):
+                            adjusted_score += 0.15  # 薄毛サプリの追加ボーナス
+                        elif any(kw in query_lower for kw in ["美容", "美白", "デトックス", "バストアップ"]) and ("美容サプリ" in category or "美容サプリ" in subcategory or "バストアップ" in subcategory):
+                            adjusted_score += 0.15  # 美容サプリの追加ボーナス
+                        elif any(kw in query_lower for kw in ["ダイエット", "減量", "痩せ", "便秘"]) and ("ダイエットサプリ" in category or "ダイエットサプリ" in subcategory or "便秘薬" in subcategory):
+                            adjusted_score += 0.15  # ダイエットサプリの追加ボーナス
+                        
+                        logger.info(f"サプリメント商品スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
+                    else:
+                        # 治療薬カテゴリはスコアを大幅減点
+                        treatment_categories = ['ED治療薬', 'AGA治療薬', '性病・感染症の治療薬', '媚薬']
+                        if category in treatment_categories:
+                            adjusted_score -= 0.30  # 治療薬の大幅減点
+                            logger.info(f"サプリメント検索で治療薬を減点: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
+                
+                
                 search_result = SearchResult(
                     product_name=metadata.get('name', ''),
                     url=metadata.get('url', ''),
                     price=metadata.get('price', ''),
                     description=metadata.get('description', ''),
                     category=metadata.get('category', ''),
+                    subcategory=metadata.get('subcategory', ''),
                     similarity_score=adjusted_score,
                     metadata=metadata
                 )
