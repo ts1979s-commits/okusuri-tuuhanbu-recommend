@@ -47,6 +47,13 @@ except ImportError as e:
     SCRAPER_AVAILABLE = False
 
 try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError as e:
+    st.error("⚠️ Pandas が利用できません - 基本検索機能が制限されます")
+    PANDAS_AVAILABLE = False
+
+try:
     from config.settings import get_settings
     settings = get_settings()
 except ImportError as e:
@@ -183,6 +190,85 @@ def initialize_recommendation_engine():
         st.info("💡 基本検索機能は正常にご利用いただけます")
         st.info("🔄 「リロード」ボタンまたはページの再読み込みを試してください")
         return None
+
+class BasicSearchResult:
+    """基本検索結果のクラス"""
+    def __init__(self, product_name, effect, ingredient, category, description, url, similarity_score=0.0):
+        self.product_name = product_name
+        self.effect = effect
+        self.ingredient = ingredient
+        self.category = category
+        self.description = description
+        self.url = url
+        self.similarity_score = similarity_score
+        self.metadata = {
+            'effect': effect,
+            'ingredient': ingredient
+        }
+
+@st.cache_data
+def load_csv_data():
+    """CSVデータを読み込む"""
+    if not PANDAS_AVAILABLE:
+        st.error("Pandasが利用できません")
+        return None
+        
+    try:
+        csv_path = "./data/product_recommend.csv"
+        df = pd.read_csv(csv_path, encoding='utf-8')
+        return df
+    except Exception as e:
+        st.error(f"CSVデータの読み込みエラー: {e}")
+        return None
+
+def basic_search(query, top_k=5):
+    """CSVから基本検索を行う"""
+    if not PANDAS_AVAILABLE:
+        return []
+        
+    df = load_csv_data()
+    if df is None:
+        return []
+    
+    import re
+    query_lower = query.lower()
+    results = []
+    
+    for _, row in df.iterrows():
+        score = 0.0
+        search_text = ""
+        
+        # 検索対象のテキストを結合
+        fields = ['商品名', '効果', '有効成分', 'カテゴリ名', '説明文', '検索キーワード']
+        for field in fields:
+            if pd.notna(row[field]):
+                search_text += str(row[field]).lower() + " "
+        
+        # キーワードマッチング
+        query_words = re.findall(r'\w+', query_lower)
+        for word in query_words:
+            if word in search_text:
+                score += 1.0
+                
+        # 完全マッチボーナス
+        if query_lower in search_text:
+            score += 3.0
+            
+        if score > 0:
+            result = BasicSearchResult(
+                product_name=row['商品名'],
+                effect=row['効果'],
+                ingredient=row['有効成分'],
+                category=row['カテゴリ名'],
+                description=row['説明文'],
+                url=row['商品URL'],
+                similarity_score=score
+            )
+            results.append(result)
+    
+    # スコア順にソート
+    results.sort(key=lambda x: x.similarity_score, reverse=True)
+    return results[:top_k]
 
 @st.cache_resource
 def initialize_scraper():
@@ -451,20 +537,26 @@ def main():
                     
                     # エンジンが正常に初期化されたか確認
                     if engine is None:
-                        st.error("❌ システムが正常に初期化されていません")
-                        st.warning("🔧 以下を確認してください：")
-                        st.write("1. `.env`ファイルにOPENAI_API_KEYが設定されているか")
-                        st.write("2. OpenAI APIキーが有効かどうか")
-                        st.write("3. インターネット接続が正常か")
-                        return
-                    
-                    with st.spinner("検索中..."):
-                        start_time = time.time()
-                        results = engine.search_products(
-                            user_query, 
-                            top_k=max_results
-                        )
-                        search_time = time.time() - start_time
+                        st.warning("🔧 **AI機能が利用できません - 基本検索を実行します**")
+                        
+                        with st.spinner("基本検索中..."):
+                            start_time = time.time()
+                            results = basic_search(user_query, max_results)
+                            search_time = time.time() - start_time
+                        
+                        if results:
+                            st.success(f"✅ 基本検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
+                        else:
+                            st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
+                            
+                    else:
+                        with st.spinner("AI検索中..."):
+                            start_time = time.time()
+                            results = engine.search_products(
+                                user_query, 
+                                top_k=max_results
+                            )
+                            search_time = time.time() - start_time
                     
                     # 結果をセッションに保存
                     st.session_state['current_results'] = results
