@@ -47,10 +47,19 @@ class Settings:
     def _get_secret(self, key: str, default: str = None) -> str:
         """Streamlit SecretsまたはOS環境変数から値を取得"""
         try:
-            # Streamlit Secretsから取得を試行
+            # Streamlit Secretsから取得を試行（複数のパスを確認）
+            import streamlit as st
+            
+            # secretsセクション内を確認
+            if hasattr(st, 'secrets') and 'secrets' in st.secrets and key in st.secrets['secrets']:
+                return st.secrets['secrets'][key]
+            
+            # 直接的なキーを確認
             if hasattr(st, 'secrets') and key in st.secrets:
                 return st.secrets[key]
-        except Exception:
+                
+        except Exception as e:
+            # Streamlitが利用できない場合やエラーの場合はスキップ
             pass
         
         # OS環境変数から取得
