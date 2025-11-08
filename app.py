@@ -334,19 +334,42 @@ def main():
     with col1:
         search_button = st.button("🔍 検索・レコメンド", type="primary")
     with col2:
-        if st.button("🔄 リロード", help="システムを再読み込みして軽量化・エラー解決"):
+        if st.button("🔄 リロード", help="システム再読み込み + ベクトルDB再構築（検索精度問題解決）"):
             # リロード実行中の表示
-            with st.spinner("リロード中..."):
-                # キャッシュをクリア
-                st.cache_data.clear()
-                st.cache_resource.clear()
-                # セッション状態をリセット（ウィジェットキーは除外）
-                widget_keys = ['search_input']  # ウィジェットのキーを除外
-                for key in list(st.session_state.keys()):
-                    if key not in widget_keys:
-                        del st.session_state[key]
-                st.success("✅ リロード完了！システムを再読み込みします...")
-                time.sleep(1)
+            with st.spinner("システム再構築中..."):
+                try:
+                    # ベクトルデータベースのキャッシュファイルを削除
+                    import os
+                    files_to_remove = [
+                        "./data/faiss_index.bin",
+                        "./data/metadata.pkl", 
+                        "./data/documents.pkl"
+                    ]
+                    removed_files = []
+                    for file_path in files_to_remove:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            removed_files.append(os.path.basename(file_path))
+                    
+                    # キャッシュをクリア
+                    st.cache_data.clear()
+                    st.cache_resource.clear()
+                    # セッション状態をリセット（ウィジェットキーは除外）
+                    widget_keys = ['search_input']  # ウィジェットのキーを除外
+                    for key in list(st.session_state.keys()):
+                        if key not in widget_keys:
+                            del st.session_state[key]
+                    
+                    if removed_files:
+                        st.success(f"✅ ベクトルDB再構築完了！削除ファイル: {', '.join(removed_files)}")
+                        st.info("🔄 次回検索時に最新CSVデータから自動構築されます")
+                    else:
+                        st.success("✅ システムリロード完了！")
+                    
+                    time.sleep(2)
+                except Exception as e:
+                    st.error(f"❌ 再構築エラー: {e}")
+                    time.sleep(1)
             st.rerun()
     with col3:
         if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
