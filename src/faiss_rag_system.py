@@ -212,11 +212,20 @@ class FAISSRAGSystem:
         
         # ED検索の場合、ED治療薬を優先的に上位表示
         if is_ed_query:
+            # ED治療薬をCSV登録順にソート
             def ed_priority_sort(result):
                 if result.category == "ED治療薬":
-                    return 0  # 最高優先度
+                    # CSVの登録順に基づいた優先度
+                    ed_order = {
+                        'カマグラゴールド': 1,
+                        'タダライズ': 2,
+                        'バリフ': 3,
+                        'アバナ': 4,
+                        'ザイスマ': 5
+                    }
+                    return ed_order.get(result.product_name, 99)  # ED薬は1-5、その他は99
                 else:
-                    return 1  # 低優先度
+                    return 100  # 非ED薬は最低優先度
             
             filtered_results.sort(key=ed_priority_sort)
             
@@ -224,6 +233,15 @@ class FAISSRAGSystem:
             ed_drugs_found = [r for r in filtered_results if r.category == "ED治療薬"]
             if len(ed_drugs_found) < 5:  # 5種類のED薬が表示されていない場合
                 all_ed_drugs = [r for r in results if r.category == "ED治療薬" and r not in filtered_results]
+                # CSVの順序でソート
+                all_ed_drugs.sort(key=lambda x: {
+                    'カマグラゴールド': 1,
+                    'タダライズ': 2,
+                    'バリフ': 3,
+                    'アバナ': 4,
+                    'ザイスマ': 5
+                }.get(x.product_name, 99))
+                
                 needed_count = min(5 - len(ed_drugs_found), len(all_ed_drugs))
                 filtered_results.extend(all_ed_drugs[:needed_count])
         
@@ -241,14 +259,15 @@ class FAISSRAGSystem:
             return results
         
         for i, metadata in enumerate(self.metadata_list):
-            # 全フィールドを文字列として結合
+            # 全フィールドを文字列として結合（キーワードフィールドも含める）
             search_text = " ".join([
                 metadata.get('category', ''),
                 metadata.get('subcategory', ''),
                 metadata.get('name', ''),
                 metadata.get('effect', ''),
                 metadata.get('ingredient', ''),
-                metadata.get('description', '')
+                metadata.get('description', ''),
+                metadata.get('keywords', '')  # 検索キーワードも追加
             ]).lower().strip()
             
             # シンプルな含有チェック
@@ -282,7 +301,20 @@ class FAISSRAGSystem:
         results.sort(key=lambda x: (-x.similarity_score, x.metadata.get('csv_order', 999)))
         
         logger.info(f"シンプル検索結果: {len(results)}件")
-        return results[:top_k]
+        
+        # ED検索の場合は最大5件まで返す（ED薬5種類すべてを表示するため）
+        query_lower = query.lower()
+        ed_keywords = [
+            "勃起", "ed", "erectile", "性機能", "中折れ", "勃起不全",
+            "バイアグラ", "シアリス", "レビトラ", "ステンドラ", "ザイデナ"
+        ]
+        is_ed_query = any(keyword in query_lower for keyword in ed_keywords)
+        
+        if is_ed_query and len(results) > 0:
+            # ED検索の場合は最大5件まで返す
+            return results[:min(5, len(results))]
+        else:
+            return results[:top_k]
     
     def _keyword_exact_search(self, query: str, top_k: int) -> List[SearchResult]:
         """キーワード完全一致検索（全フィールド対象）"""
@@ -402,8 +434,21 @@ class FAISSRAGSystem:
             query_vector = np.array([query_embedding], dtype=np.float32)
             faiss.normalize_L2(query_vector)
             
+            # ED関連キーワードかチェック
+            query_lower = query.lower()
+            ed_keywords = [
+                "勃起", "ed", "erectile", "性機能", "中折れ", "勃起不全",
+                "バイアグラ", "シアリス", "レビトラ", "ステンドラ", "ザイデナ",
+                "シルデナフィル", "タダラフィル", "バルデナフィル", "アバナフィル", "ウデナフィル",
+                "性行為", "勃起力", "硬さ", "持続", "男性機能", "ed薬", "ed治療"
+            ]
+            is_ed_query = any(keyword in query_lower for keyword in ed_keywords)
+            
             # 検索を実行（ED検索の場合はより多くの候補を取得）
-            search_k = min(top_k * 3, self.index.ntotal)  # 3倍の候補を取得
+            if is_ed_query:
+                search_k = min(self.index.ntotal, 35)  # ED検索では全商品を取得
+            else:
+                search_k = min(top_k * 3, self.index.ntotal)  # 通常は3倍の候補を取得
             scores, indices = self.index.search(query_vector, search_k)
             
             # 結果を整形
