@@ -69,19 +69,28 @@ class FAISSRAGSystem:
                 del os.environ[key]
         
         try:
-            # OpenAIクライアントの初期化（古いバージョン対応）
+            # OpenAIクライアントの初期化（proxiesエラー対応版）
             self.client = OpenAI(api_key=openai_api_key)
             logger.info("OpenAIクライアントを初期化しました")
         except TypeError as te:
-            if "proxies" in str(te):
-                # プロキシエラーの場合、より基本的な初期化を試行
-                logger.warning("プロキシエラーを検出。基本的な初期化を試行中...")
+            # proxies引数エラーの対応
+            logger.warning(f"OpenAI初期化TypeError: {te}")
+            if "proxies" in str(te) or "unexpected keyword argument" in str(te):
+                logger.info("proxies引数問題を検出。環境変数をクリアして再試行中...")
+                # プロキシ関連の環境変数をクリア
+                import os
+                for proxy_var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']:
+                    if proxy_var in os.environ:
+                        del os.environ[proxy_var]
+                        logger.info(f"削除: {proxy_var}")
+                
+                # 再試行
                 try:
                     self.client = OpenAI(api_key=openai_api_key)
-                    logger.info("基本的なOpenAIクライアント初期化に成功")
+                    logger.info("環境変数クリア後の初期化に成功")
                 except Exception as e2:
-                    logger.error(f"基本的な初期化も失敗: {e2}")
-                    raise
+                    logger.error(f"環境変数クリア後も初期化失敗: {e2}")
+                    raise RuntimeError(f"OpenAIクライアント初期化に失敗: {e2}")
             else:
                 logger.error(f"OpenAIクライアント初期化エラー: {te}")
                 raise
