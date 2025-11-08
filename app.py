@@ -194,8 +194,6 @@ def initialize_recommendation_engine():
                 st.write(f"**Python バージョン:** {sys.version}")
         
         # 軽量版システムを返す（基本的な機能のみ）
-        st.info("💡 基本検索機能は正常にご利用いただけます")
-        st.info("🔄 「リロード」ボタンまたはページの再読み込みを試してください")
         return None
 
 class BasicSearchResult:
