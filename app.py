@@ -36,21 +36,18 @@ try:
     from src.faiss_rag_system import FAISSRAGSystem
     FAISS_AVAILABLE = True
 except ImportError as e:
-    st.warning("⚠️ AI機能が利用できません (FAISS RAGシステム)")
     FAISS_AVAILABLE = False
 
 try:
     from src.scraper import OkusuriScraper
     SCRAPER_AVAILABLE = True
 except ImportError as e:
-    st.warning("⚠️ スクレイパー機能が利用できません")
     SCRAPER_AVAILABLE = False
 
 try:
     import pandas as pd
     PANDAS_AVAILABLE = True
 except ImportError as e:
-    st.error("⚠️ Pandas が利用できません - 基本検索機能が制限されます")
     PANDAS_AVAILABLE = False
 
 try:
@@ -169,12 +166,11 @@ def initialize_recommendation_engine():
         
         # プロキシエラーの特別処理
         if error_type == "ProxyConnectionError":
-            st.warning("🔧 **プロキシ設定のため AI機能は利用できません**")
-            st.info("Streamlit Cloud環境のプロキシ設定により、OpenAI APIに接続できませんでした。基本検索機能をご利用ください。")
+            pass  # ユーザーには表示しない
         elif "proxy" in error_msg.lower() or "プロキシ" in error_msg:
-            st.warning("🔧 **プロキシ設定エラー**: AI機能が利用できません")
-            st.info("基本検索機能は正常にご利用いただけます。")
+            pass  # ユーザーには表示しない
         else:
+            # 重要なエラーのみ表示
             st.error(f"❌ システム初期化エラー: {error_msg}")
             
             # 詳細なエラー情報
@@ -210,7 +206,6 @@ class BasicSearchResult:
 def load_csv_data():
     """CSVデータを読み込む"""
     if not PANDAS_AVAILABLE:
-        st.error("Pandasが利用できません")
         return None
         
     try:
@@ -218,7 +213,7 @@ def load_csv_data():
         df = pd.read_csv(csv_path, encoding='utf-8')
         return df
     except Exception as e:
-        st.error(f"CSVデータの読み込みエラー: {e}")
+        # エラーを静かに処理
         return None
 
 def basic_search(query, top_k=5):
@@ -399,8 +394,7 @@ def main():
     
     # システム状態確認を先に実行
     if not FAISS_AVAILABLE and not SCRAPER_AVAILABLE:
-        st.error("❌ システムの必須コンポーネントが利用できません")
-        st.info("基本機能のみで動作します")
+        pass  # エラーメッセージを表示せず、静かに基本機能で動作
     
     # ヘッダー
     st.markdown('<h1 class="main-header">💊 お薬通販部 商品レコメンド AI</h1>', unsafe_allow_html=True)
@@ -537,20 +531,19 @@ def main():
                     
                     # エンジンが正常に初期化されたか確認
                     if engine is None:
-                        st.warning("🔧 **AI機能が利用できません - 基本検索を実行します**")
-                        
-                        with st.spinner("基本検索中..."):
+                        # AI機能が利用できない場合は静かに基本検索に切り替え
+                        with st.spinner("検索中..."):
                             start_time = time.time()
                             results = basic_search(user_query, max_results)
                             search_time = time.time() - start_time
                         
                         if results:
-                            st.success(f"✅ 基本検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
+                            st.success(f"✅ 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
                         else:
                             st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
                             
                     else:
-                        with st.spinner("AI検索中..."):
+                        with st.spinner("検索中..."):
                             start_time = time.time()
                             results = engine.search_products(
                                 user_query, 
