@@ -12,7 +12,7 @@ import time
 # パスを追加
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.recommendation_engine import RecommendationEngine, SearchResult, RecommendationContext
+from src.faiss_rag_system import FAISSRAGSystem
 from src.scraper import OkusuriScraper
 from config.settings import get_settings
 
@@ -111,12 +111,12 @@ def initialize_recommendation_engine():
     """レコメンドエンジンを初期化（キャッシュ付き、エラー処理強化）"""
     try:
         # エンジン初期化
-        engine = RecommendationEngine()
+        engine = FAISSRAGSystem()
         
         # 軽量な初期化テスト
         try:
-            status = engine.get_system_status()
-            st.sidebar.write(f"✅ システム状態: {status['recommendation_engine']}")
+            # システム状態確認（簡易版）
+            st.sidebar.write(f"✅ FAISS RAGシステム初期化完了")
         except Exception as status_error:
             st.sidebar.warning(f"⚠️ 状態確認エラー: {str(status_error)}")
         
@@ -145,7 +145,7 @@ def initialize_scraper():
     """スクレイパーを初期化（キャッシュ付き）"""
     return OkusuriScraper()
 
-def display_search_result(result: SearchResult, index: int):
+def display_search_result(result, index: int):
     """検索結果を表示"""
     with st.container():
         # メタデータから効果と有効成分を取得（英語キーで取得）
@@ -412,22 +412,20 @@ def main():
                     
                     with st.spinner("検索中..."):
                         start_time = time.time()
-                        results, context = engine.recommend_products(
+                        results = engine.search_products(
                             user_query, 
-                            max_results=max_results
+                            top_k=max_results
                         )
                         search_time = time.time() - start_time
                     
                     # 結果をセッションに保存
                     st.session_state['current_results'] = results
-                    st.session_state['current_context'] = context
                     st.session_state['current_search_time'] = search_time
                     st.session_state['current_query'] = user_query
                     
                     # 検索結果をキャッシュ（最大10件まで）
                     st.session_state[cache_key] = {
                         'results': results,
-                        'context': context,
                         'search_time': search_time,
                         'query': user_query
                     }
