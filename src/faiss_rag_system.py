@@ -69,11 +69,8 @@ class FAISSRAGSystem:
                 del os.environ[key]
         
         try:
-            # OpenAIクライアントの初期化
-            self.client = OpenAI(
-                api_key=openai_api_key,
-                timeout=30.0
-            )
+            # OpenAIクライアントの初期化（古いバージョン対応）
+            self.client = OpenAI(api_key=openai_api_key)
             logger.info("OpenAIクライアントを初期化しました")
         except TypeError as te:
             if "proxies" in str(te):
