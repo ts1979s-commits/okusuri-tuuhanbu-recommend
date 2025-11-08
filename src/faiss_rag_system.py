@@ -6,7 +6,6 @@ import json
 import os
 import pickle
 import csv
-import sys
 from typing import List, Dict, Optional, Any
 import logging
 from dataclasses import dataclass
@@ -15,16 +14,9 @@ try:
     import faiss
     import numpy as np
     from openai import OpenAI
-    
-    # OpenAIバージョン確認
-    import openai
-    OPENAI_VERSION = getattr(openai, '__version__', 'unknown')
-    print(f"OpenAI version: {OPENAI_VERSION}")
-    
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     DEPENDENCIES_AVAILABLE = False
-    OPENAI_VERSION = None
     print(f"必要なライブラリがありません: {e}")
 
 logging.basicConfig(level=logging.INFO)
@@ -49,147 +41,61 @@ class FAISSRAGSystem:
         if not DEPENDENCIES_AVAILABLE:
             raise RuntimeError("依存関係がありません")
             
-        logger.info("=== FAISSRAGSystem初期化開始 ===")
-        logger.info(f"Python version: {sys.version}")
-        logger.info(f"OpenAI version: {OPENAI_VERSION}")
-        
-        # 環境変数の確認
-        logger.info("環境変数確認:")
-        for var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
-            value = os.getenv(var)
-            if value:
-                logger.info(f"  {var}: {value}")
-            else:
-                logger.info(f"  {var}: (未設定)")
-        
         openai_api_key = os.getenv('OPENAI_API_KEY')
         if not openai_api_key:
-            raise ValueError("OPENAI_API_KEYが必要です。環境変数またはStreamlit Secretsに設定してください。")
+            raise ValueError("OPENAI_API_KEYが必要")
         
-        # APIキーの妥当性チェック
-        if len(openai_api_key) < 10:
-            raise ValueError("OPENAI_API_KEYが短すぎます。正しいAPIキーを設定してください。")
-        
-        logger.info(f"OpenAI APIキー確認: {'*' * (len(openai_api_key) - 8) + openai_api_key[-8:]}")
-        logger.info(f"OpenAI library version: {OPENAI_VERSION}")
-        
-        # プロキシと環境変数クリア
+        # プロキシクリア（強化版）
         proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
-        cleared_count = 0
         for key in proxy_vars:
             if key in os.environ:
-                old_value = os.environ[key]
+                logger.info(f"削除: {key}={os.environ[key]}")
                 del os.environ[key]
-                logger.info(f"削除した環境変数: {key}={old_value}")
-                cleared_count += 1
         
-        if cleared_count > 0:
-            logger.info(f"合計 {cleared_count} 個のプロキシ関連環境変数を削除しました")
-        else:
-            logger.info("削除対象のプロキシ環境変数はありませんでした")
-        
-        # OpenAIクライアント初期化（段階的アプローチ）
+        # OpenAIクライアント初期化（プロキシ対応版）
         self.client = None
-        init_success = False
         
-        logger.info("=== OpenAIクライアント初期化開始 ===")
-        
-        # 方法1: 最もシンプルな初期化（推奨）
+        # 方法1: プロキシ無効化での初期化
         try:
-            logger.info("試行 1/3: 基本的なOpenAIクライアント作成...")
-            # OpenAI 1.x系での標準的な初期化
-            self.client = OpenAI(api_key=openai_api_key)
-            logger.info("クライアント作成完了、接続テスト実行中...")
+            logger.info("プロキシ無効化でのOpenAI初期化を試行")
+            import httpx
             
-            # 簡単な接続テスト
-            test_response = self.client.models.list()
-            if test_response and hasattr(test_response, 'data'):
-                model_count = len(test_response.data)
-                logger.info(f"接続テスト成功: {model_count} モデル確認")
-                init_success = True
-                logger.info("✅ OpenAIクライアント初期化成功（基本方式）")
-            else:
-                logger.warning("接続テストでモデル一覧の取得に失敗")
-        except Exception as e1:
-            logger.warning(f"❌ 基本方式初期化失敗: {type(e1).__name__}: {str(e1)}")
+            # プロキシを明示的に無効化したhttpxクライアント
+            custom_client = httpx.Client(proxies={}, verify=True, timeout=60.0)
             
-            # 方法2: 明示的な設定での初期化
+            # OpenAIクライアントにカスタムHTTPクライアントを設定
+            self.client = OpenAI(api_key=openai_api_key, http_client=custom_client)
+            logger.info("✅ OpenAIクライアント初期化成功（プロキシ無効化）")
+            
+        except Exception as e_proxy:
+            logger.warning(f"プロキシ無効化初期化失敗: {e_proxy}")
+            
+            # 方法2: 基本的な初期化
             try:
-                logger.info("試行 2/3: 明示的設定でのOpenAIクライアント作成...")
-                # より明示的な設定
-                self.client = OpenAI(
-                    api_key=openai_api_key,
-                    base_url="https://api.openai.com/v1",
-                    timeout=60.0,
-                    max_retries=3
-                )
-                logger.info("クライアント作成完了、接続テスト実行中...")
+                self.client = OpenAI(api_key=openai_api_key)
+                logger.info("✅ OpenAIクライアント初期化成功（基本）")
+            except Exception as e1:
+                logger.warning(f"基本初期化失敗: {e1}")
                 
-                # 接続テスト
-                test_response = self.client.models.list()
-                if test_response and hasattr(test_response, 'data'):
-                    model_count = len(test_response.data)
-                    logger.info(f"接続テスト成功: {model_count} モデル確認")
-                    init_success = True
-                    logger.info("✅ OpenAIクライアント初期化成功（明示設定方式）")
-                else:
-                    logger.warning("接続テストでモデル一覧の取得に失敗")
-            except Exception as e2:
-                logger.warning(f"❌ 明示設定方式初期化失敗: {type(e2).__name__}: {str(e2)}")
-                
-                # 方法3: 最小設定での初期化
+                # 方法3: タイムアウト付き
                 try:
-                    logger.info("試行 3/3: 最小設定でのOpenAIクライアント作成...")
+                    self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
+                    logger.info("✅ OpenAIクライアント初期化成功（タイムアウト付き）")
+                except Exception as e2:
+                    logger.warning(f"タイムアウト付き初期化失敗: {e2}")
                     
-                    # 最小限の設定で再試行
-                    self.client = OpenAI(
-                        api_key=openai_api_key,
-                        timeout=30.0
-                    )
-                    logger.info("クライアント作成完了、簡易テスト実行中...")
-                    
-                    # 簡易接続テスト（モデル一覧取得をスキップ）
+                    # 方法4: 最小限の設定
                     try:
-                        # より軽い処理でテスト
-                        test_response = self.client.models.list()
-                        if test_response and hasattr(test_response, 'data'):
-                            model_count = len(test_response.data)
-                            logger.info(f"接続テスト成功: {model_count} モデル確認")
-                        else:
-                            logger.info("モデル一覧は取得できませんが、クライアントは作成されました")
-                        
-                        init_success = True
-                        logger.info("✅ OpenAIクライアント初期化成功（最小設定方式）")
-                        
-                    except Exception as test_e:
-                        logger.warning(f"接続テストは失敗しましたが、クライアント作成は成功: {test_e}")
-                        # テストに失敗してもクライアントは作成されているので続行
-                        init_success = True
-                        logger.info("✅ OpenAIクライアント初期化成功（テスト無し）")
-                        
-                except Exception as e3:
-                    logger.error(f"❌ 全ての初期化方法が失敗:")
-                    logger.error(f"  方法1 (基本): {type(e1).__name__}: {str(e1)}")
-                    logger.error(f"  方法2 (明示): {type(e2).__name__}: {str(e2)}")
-                    logger.error(f"  方法3 (最小): {type(e3).__name__}: {str(e3)}")
-                    
-                    # 最終的なエラーメッセージ
-                    final_error = f"OpenAI接続に失敗しました。"
-                    if "proxies" in str(e1).lower() or "proxies" in str(e2).lower() or "proxies" in str(e3).lower():
-                        final_error += " プロキシ設定に問題があります。"
-                    elif "api_key" in str(e1).lower() or "api_key" in str(e2).lower() or "api_key" in str(e3).lower():
-                        final_error += " APIキーを確認してください。"
-                    else:
-                        final_error += " ネットワーク接続を確認してください。"
-                    
-                    raise RuntimeError(final_error)
+                        import openai
+                        openai.api_key = openai_api_key
+                        self.client = OpenAI(api_key=openai_api_key)
+                        logger.info("✅ OpenAIクライアント初期化成功（最小限）")
+                    except Exception as e3:
+                        logger.error(f"全ての初期化方法が失敗: プロキシ無効={e_proxy}, 基本={e1}, タイムアウト={e2}, 最小限={e3}")
+                        raise RuntimeError(f"OpenAI接続に失敗しました。プロキシ設定またはAPIキーを確認してください: {e3}")
         
-        if not init_success or self.client is None:
-            logger.error("OpenAIクライアントの初期化に完全に失敗しました")
-            raise RuntimeError("OpenAIクライアントの初期化に失敗しました。APIキーまたはネットワーク接続を確認してください。")
-        
-        logger.info("=== OpenAIクライアント初期化完了 ===")
-        logger.info(f"クライアント状態: {type(self.client).__name__}")
+        if self.client is None:
+            raise RuntimeError("OpenAIクライアントの初期化に失敗しました")
         
         # FAISS設定
         self.index = None
@@ -203,8 +109,6 @@ class FAISSRAGSystem:
         self.index_file = os.path.join(self.data_dir, "faiss_index.bin")
         self.metadata_file = os.path.join(self.data_dir, "metadata.pkl")
         self.documents_file = os.path.join(self.data_dir, "documents.pkl")
-        
-        logger.info("=== FAISSRAGSystem初期化完了 ===")
         
         self._initialize()
 
