@@ -75,9 +75,75 @@ OPENAI_API_KEY = "sk-your-actual-api-key"
         st.success("✅ システム初期化完了")
         
     except Exception as e:
-        st.error(f"❌ システム初期化失敗: {e}")
-        st.exception(e)
-        st.stop()
+        st.error(f"❌ AI機能の初期化に失敗しました: {e}")
+        st.warning("🔄 基本検索モードに切り替えます")
+        
+        # フォールバック: 基本検索機能を提供
+        import pandas as pd
+        
+        @st.cache_data
+        def load_basic_data():
+            try:
+                df = pd.read_csv("data/product_recommend.csv", encoding='utf-8-sig')
+                return df.to_dict('records')
+            except:
+                return []
+
+        products = load_basic_data()
+        
+        if not products:
+            st.error("データファイルの読み込みに失敗しました")
+            st.stop()
+        
+        st.success(f"✅ 基本モード: {len(products)}件の商品データ")
+        
+        # 基本検索インターフェース
+        st.header("🔍 商品検索（基本モード）")
+        query = st.text_input("商品を検索:", placeholder="例: ED治療薬、サプリメント")
+
+        if query:
+            results = []
+            for product in products:
+                score = 0
+                product_name = str(product.get('商品名', ''))
+                category = str(product.get('カテゴリ名', ''))
+                
+                if query.lower() in product_name.lower():
+                    score += 3
+                if query.lower() in category.lower():
+                    score += 2
+                    
+                if score > 0:
+                    results.append((product, score))
+            
+            results.sort(key=lambda x: x[1], reverse=True)
+            
+            if results:
+                st.write(f"🎯 {len(results)}件見つかりました:")
+                
+                for product, score in results[:5]:
+                    with st.container():
+                        st.markdown(f"**{product.get('商品名', '')}**")
+                        st.write(f"📂 カテゴリ: {product.get('カテゴリ名', '')}")
+                        if product.get('効果'):
+                            st.write(f"💊 効果: {product.get('効果', '')}")
+                        if product.get('有効成分'):
+                            st.write(f"🧪 有効成分: {product.get('有効成分', '')}")
+                        st.divider()
+            else:
+                st.write("該当商品がありません")
+        
+        # サイドバー検索例
+        with st.sidebar:
+            st.header("💡 検索例")
+            if st.button("ED治療薬"):
+                st.rerun()
+            if st.button("サプリメント"):
+                st.rerun() 
+            if st.button("ダイエット"):
+                st.rerun()
+        
+        return  # フォールバックモード終了
     
     # ステップ3: 検索インターフェース
     st.header("🔍 商品検索")

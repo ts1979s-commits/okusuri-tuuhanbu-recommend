@@ -62,44 +62,59 @@ class FAISSRAGSystem:
             logger.error("OPENAI_API_KEYが設定されていません")
             raise ValueError("OPENAI_API_KEYが必要です")
         
-        # プロキシ環境変数をクリア
+        # 最強のOpenAI初期化エラー対策
         import os
-        for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
-            if key in os.environ:
-                del os.environ[key]
+        import sys
+        import importlib
         
+        # 全プロキシ関連環境変数をクリア
+        proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 
+                     'ALL_PROXY', 'all_proxy', 'FTP_PROXY', 'ftp_proxy',
+                     'SOCKS_PROXY', 'socks_proxy', 'NO_PROXY', 'no_proxy']
+        for proxy_var in proxy_vars:
+            if proxy_var in os.environ:
+                del os.environ[proxy_var]
+                logger.info(f"環境変数削除: {proxy_var}")
+        
+        # OpenAIクライアント初期化の複数アプローチ
+        self.client = None
+        init_success = False
+        
+        # アプローチ 1: 標準初期化
         try:
-            # OpenAIクライアントの初期化（proxiesエラー対応版）
             self.client = OpenAI(api_key=openai_api_key)
-            logger.info("OpenAIクライアントを初期化しました")
-        except TypeError as te:
-            # proxies引数エラーの対応
-            logger.warning(f"OpenAI初期化TypeError: {te}")
-            if "proxies" in str(te) or "unexpected keyword argument" in str(te):
-                logger.info("proxies引数問題を検出。環境変数をクリアして再試行中...")
-                # プロキシ関連の環境変数をクリア
-                import os
-                for proxy_var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']:
-                    if proxy_var in os.environ:
-                        del os.environ[proxy_var]
-                        logger.info(f"削除: {proxy_var}")
+            logger.info("✅ 標準初期化に成功")
+            init_success = True
+        except Exception as e1:
+            logger.warning(f"標準初期化失敗: {e1}")
+            
+            # アプローチ 2: importlib経由での初期化
+            try:
+                # OpenAIモジュールを強制再インポート
+                if 'openai' in sys.modules:
+                    importlib.reload(sys.modules['openai'])
                 
-                # 再試行
+                from openai import OpenAI as OpenAI_Fresh
+                self.client = OpenAI_Fresh(api_key=openai_api_key)
+                logger.info("✅ 再インポート初期化に成功")
+                init_success = True
+            except Exception as e2:
+                logger.warning(f"再インポート初期化失敗: {e2}")
+                
+                # アプローチ 3: 最小パラメータ初期化
                 try:
-                    self.client = OpenAI(api_key=openai_api_key)
-                    logger.info("環境変数クリア後の初期化に成功")
-                except Exception as e2:
-                    logger.error(f"環境変数クリア後も初期化失敗: {e2}")
-                    raise RuntimeError(f"OpenAIクライアント初期化に失敗: {e2}")
-            else:
-                logger.error(f"OpenAIクライアント初期化エラー: {te}")
-                raise
-        except Exception as e:
-            logger.error(f"OpenAIクライアント初期化エラー: {e}")
-            # 可能性のある問題をチェック
-            if "proxies" in str(e):
-                logger.error("プロキシ関連エラーが検出されました。環境変数を確認してください。")
-            raise
+                    # 最小限のパラメータのみで初期化
+                    import openai
+                    openai.api_key = openai_api_key
+                    self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
+                    logger.info("✅ 最小パラメータ初期化に成功") 
+                    init_success = True
+                except Exception as e3:
+                    logger.error(f"全ての初期化方法が失敗: 標準={e1}, 再インポート={e2}, 最小={e3}")
+                    raise RuntimeError(f"OpenAIクライアント初期化に失敗: {e3}")
+        
+        if not init_success or self.client is None:
+            raise RuntimeError("OpenAIクライアントの初期化が完了していません")
         
         # FAISS設定
         self.index = None
