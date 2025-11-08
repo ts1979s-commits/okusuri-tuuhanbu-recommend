@@ -136,10 +136,33 @@ class FAISSRAGSystem:
             "フィナステリド", "ミノキシジル", "デュタステリド"
         ]
         
-        exclude_products_for_aga = ["ケアプロスト", "careplus"]
+        # ED治療薬関連のキーワード
+        ed_keywords = [
+            "勃起", "ed", "erectile", "性機能", "中折れ", "勃起不全",
+            "バイアグラ", "シアリス", "レビトラ", "ステンドラ", "ザイデナ",
+            "シルデナフィル", "タダラフィル", "バルデナフィル", "アバナフィル", "ウデナフィル",
+            "性行為", "勃起力", "硬さ", "持続", "男性機能"
+        ]
         
-        # AGA関連検索の場合、まつ毛美容液を除外
+        # 女性向け・男性サプリ関連キーワード
+        female_keywords = [
+            "女性", "妊活", "不感症", "性的興奮", "濡れ", "女性用"
+        ]
+        
+        male_supplement_keywords = [
+            "精子", "精液", "男性不妊", "天然ハーブ", "サプリ"
+        ]
+        
+        exclude_products_for_aga = ["ケアプロスト", "careplus"]
+        exclude_categories_for_ed = ["女性向け薬品", "男性サプリ", "美容・コスメ"]
+        exclude_categories_for_female = ["ED治療薬", "AGA治療薬", "男性サプリ"]
+        exclude_categories_for_supplement = ["ED治療薬", "女性向け薬品"]
+        
+        # 検索クエリの分類
         is_aga_query = any(keyword in query_lower for keyword in aga_hair_keywords)
+        is_ed_query = any(keyword in query_lower for keyword in ed_keywords)
+        is_female_query = any(keyword in query_lower for keyword in female_keywords)
+        is_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
         
         for result in results:
             should_exclude = False
@@ -153,6 +176,27 @@ class FAISSRAGSystem:
                     "まつげ" in category or "まつ毛" in category):
                     should_exclude = True
                     logger.info(f"AGA検索でまつ毛美容液を除外: {result.product_name}")
+            
+            elif is_ed_query:
+                # ED検索で女性用商品とサプリを除外
+                category = result.category.lower() if result.category else ""
+                if any(excluded in category for excluded in exclude_categories_for_ed):
+                    should_exclude = True
+                    logger.info(f"ED検索で不適切カテゴリを除外: {result.product_name} ({result.category})")
+            
+            elif is_female_query:
+                # 女性向け検索で男性用商品を除外
+                category = result.category.lower() if result.category else ""
+                if any(excluded in category for excluded in exclude_categories_for_female):
+                    should_exclude = True
+                    logger.info(f"女性向け検索で男性用商品を除外: {result.product_name} ({result.category})")
+                    
+            elif is_supplement_query:
+                # サプリ検索で医療用ED薬を除外
+                category = result.category.lower() if result.category else ""
+                if any(excluded in category for excluded in exclude_categories_for_supplement):
+                    should_exclude = True
+                    logger.info(f"サプリ検索で医療用薬品を除外: {result.product_name} ({result.category})")
             
             if not should_exclude:
                 filtered_results.append(result)
