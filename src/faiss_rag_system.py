@@ -10,6 +10,11 @@ from typing import List, Dict, Optional, Any
 import logging
 from dataclasses import dataclass
 
+# カスタム例外クラス
+class ProxyConnectionError(Exception):
+    """プロキシ接続エラー"""
+    pass
+
 try:
     import faiss
     import numpy as np
@@ -51,7 +56,8 @@ class FAISSRAGSystem:
         proxy_vars = [
             'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 
             'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
-            'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'
+            'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE',
+            'PROXY', 'proxy', 'FTP_PROXY', 'ftp_proxy'
         ]
         
         for key in proxy_vars:
@@ -62,21 +68,41 @@ class FAISSRAGSystem:
         # urllib3とrequestsのプロキシ設定も無効化
         try:
             import urllib3
-            urllib3.util.connection.create_connection = urllib3.util.connection.create_connection
+            # urllib3のプロキシマネージャーを無効化
+            urllib3.poolmanager.ProxyManager = None
         except:
             pass
             
         # requestsライブラリのプロキシ無効化
         try:
             import requests
-            # グローバル設定でプロキシを無効化
-            requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
-            requests.Session.proxies = {}
+            # セッションのプロキシを強制的に無効化
+            original_session_init = requests.Session.__init__
+            def patched_session_init(self, *args, **kwargs):
+                original_session_init(self, *args, **kwargs)
+                self.proxies = {}
+                self.trust_env = False
+            requests.Session.__init__ = patched_session_init
+        except:
+            pass
+        
+        # システムレベルでのプロキシ設定を無効化
+        try:
+            import socket
+            # ソケットレベルでのプロキシ設定を回避
+            original_getaddrinfo = socket.getaddrinfo
+            def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+                # プロキシホストを直接接続に変換
+                if 'proxy' in host.lower():
+                    return original_getaddrinfo('api.openai.com', port, family, type, proto, flags)
+                return original_getaddrinfo(host, port, family, type, proto, flags)
+            socket.getaddrinfo = patched_getaddrinfo
         except:
             pass
         
         # OpenAIクライアント初期化（強化版プロキシ対応）
         self.client = None
+        proxy_error_occurred = False
         
         # 方法1: 完全プロキシ無効化での初期化
         try:
@@ -88,7 +114,8 @@ class FAISSRAGSystem:
                 proxies=None,  # Noneで完全無効化
                 verify=True,
                 timeout=httpx.Timeout(60.0, connect=30.0),
-                follow_redirects=True
+                follow_redirects=True,
+                trust_env=False  # 環境変数を無視
             )
             
             # OpenAIクライアントにカスタムHTTPクライアントを設定
@@ -107,6 +134,8 @@ class FAISSRAGSystem:
             
         except Exception as e_proxy:
             logger.warning(f"完全プロキシ無効化初期化失敗: {e_proxy}")
+            if 'proxy' in str(e_proxy).lower() or 'プロキシ' in str(e_proxy):
+                proxy_error_occurred = True
             
             # 方法2: 空辞書プロキシでの初期化
             try:
@@ -124,6 +153,8 @@ class FAISSRAGSystem:
                 
             except Exception as e_empty:
                 logger.warning(f"空辞書プロキシ初期化失敗: {e_empty}")
+                if 'proxy' in str(e_empty).lower() or 'プロキシ' in str(e_empty):
+                    proxy_error_occurred = True
             
                 # 方法3: 基本的な初期化
                 try:
@@ -131,6 +162,8 @@ class FAISSRAGSystem:
                     logger.info("✅ OpenAIクライアント初期化成功（基本）")
                 except Exception as e1:
                     logger.warning(f"基本初期化失敗: {e1}")
+                    if 'proxy' in str(e1).lower() or 'プロキシ' in str(e1):
+                        proxy_error_occurred = True
                     
                     # 方法4: タイムアウト付き
                     try:
@@ -138,6 +171,8 @@ class FAISSRAGSystem:
                         logger.info("✅ OpenAIクライアント初期化成功（タイムアウト付き）")
                     except Exception as e2:
                         logger.warning(f"タイムアウト付き初期化失敗: {e2}")
+                        if 'proxy' in str(e2).lower() or 'プロキシ' in str(e2):
+                            proxy_error_occurred = True
                         
                         # 方法5: 最小限の設定（最後の手段）
                         try:
@@ -152,7 +187,12 @@ class FAISSRAGSystem:
                             logger.error(f"  基本: {e1}")
                             logger.error(f"  タイムアウト: {e2}")
                             logger.error(f"  最小限: {e3}")
-                            raise RuntimeError(f"OpenAI接続に完全に失敗しました。プロキシ設定またはAPIキーを確認してください: {e3}")
+                            
+                            # プロキシエラーの場合は特別な例外を投げる
+                            if proxy_error_occurred or 'proxy' in str(e3).lower() or 'プロキシ' in str(e3):
+                                raise ProxyConnectionError(f"プロキシ設定により OpenAI API への接続に失敗しました。基本検索モードを使用してください。")
+                            else:
+                                raise RuntimeError(f"OpenAI接続に完全に失敗しました。プロキシ設定またはAPIキーを確認してください: {e3}")
         
         if self.client is None:
             raise RuntimeError("OpenAIクライアントの初期化に失敗しました")

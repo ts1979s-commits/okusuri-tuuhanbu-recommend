@@ -159,18 +159,22 @@ def main():
             error_type = type(e).__name__
             logger.error(f"AI機能初期化エラー: {error_type}: {error_msg}")
             
-            # より詳細なエラー分類
-            if "proxies" in error_msg.lower() or "プロキシ" in error_msg:
-                st.error("🔧 **プロキシ設定エラー**: OpenAI接続でプロキシ設定に問題があります")
+            # ProxyConnectionErrorの特別処理
+            if error_type == "ProxyConnectionError":
+                st.warning("🔧 **プロキシ設定のため AI機能は利用できません**")
+                st.info("Streamlit Cloud環境のプロキシ設定により、OpenAI APIに接続できませんでした。基本検索機能をご利用ください。")
+            # 一般的なプロキシエラーの処理
+            elif "proxies" in error_msg.lower() or "プロキシ" in error_msg or "proxy" in error_msg.lower():
+                st.warning("🔧 **プロキシ設定エラー**: OpenAI接続でプロキシ設定に問題があります")
                 st.info("💡 **解決方法**: ")
                 st.markdown("""
-                1. プロキシ設定を確認してください
-                2. ネットワーク管理者にお問い合わせください
-                3. VPN接続をご確認ください
+                - 現在プロキシ設定の問題により AI機能が利用できません
+                - 基本検索機能は正常にご利用いただけます
+                - 管理者によりプロキシ設定を調整中です
                 """)
             elif "got an unexpected keyword argument 'proxies'" in error_msg:
-                st.error("🔧 **OpenAIライブラリ設定エラー**: プロキシ引数の競合が発生しています")
-                st.info("💡 **解決方法**: システム管理者にお問い合わせください（ライブラリバージョンの問題）")
+                st.warning("🔧 **OpenAIライブラリ設定エラー**: プロキシ引数の競合が発生しています")
+                st.info("💡 **解決方法**: ライブラリバージョンの問題のため、基本検索をご利用ください")
             elif "api_key" in error_msg.lower() or "apikey" in error_msg.lower():
                 st.warning("🔑 **APIキー設定エラー**: OpenAI APIキーの設定に問題があります")
                 st.info("💡 **解決方法**: OPENAI_API_KEYを正しく設定してください")
