@@ -177,6 +177,15 @@ class FAISSRAGSystem:
             "デトックス", "便が出ない", "排便困難", "便通改善", "消化不良", "整腸"
         ]
         
+        # 性病・感染症治療薬関連キーワード
+        std_infection_keywords = [
+            "性病", "感染症", "クラミジア", "淋病", "梅毒", "ヘルペス", "カンジダ", 
+            "トリコモナス", "コンジローマ", "hiv", "エイズ", "水虫", "いんきんたむし",
+            "抗生物質", "抗ウイルス薬", "抗真菌薬", "抗原虫薬", "細菌感染", "真菌感染",
+            "ウイルス感染", "尿道炎", "膣炎", "帯状疱疹", "口唇ヘルペス", "性器ヘルペス",
+            "おりもの", "かゆみ", "性感染症", "性行為感染症", "std", "sti"
+        ]
+        
         # 女性向け・男性サプリ関連キーワード
         female_keywords = [
             "女性", "妊活", "不感症", "性的興奮", "濡れ", "女性用"
@@ -191,6 +200,7 @@ class FAISSRAGSystem:
         exclude_categories_for_female = ["ED治療薬", "AGA治療薬", "男性サプリ"]
         exclude_categories_for_supplement = ["ED治療薬", "女性向け薬品"]
         exclude_categories_for_constipation = ["ED治療薬", "AGA治療薬", "性病・感染症の治療薬", "美容・スキンケア"]
+        exclude_categories_for_std = ["ED治療薬", "AGA治療薬", "美容・スキンケア", "ダイエット"]
         
         # 検索クエリの分類
         is_aga_query = any(keyword in query_lower for keyword in aga_hair_keywords)
@@ -198,6 +208,7 @@ class FAISSRAGSystem:
         is_diet_query = any(keyword in query_lower for keyword in diet_keywords)
         is_beauty_query = any(keyword in query_lower for keyword in beauty_keywords)
         is_constipation_query = any(keyword in query_lower for keyword in constipation_keywords)
+        is_std_query = any(keyword in query_lower for keyword in std_infection_keywords)
         is_female_query = any(keyword in query_lower for keyword in female_keywords)
         is_supplement_query = any(keyword in query_lower for keyword in male_supplement_keywords)
         
@@ -241,6 +252,13 @@ class FAISSRAGSystem:
                 if any(excluded_cat == category for excluded_cat in exclude_categories_for_constipation):
                     should_exclude = True
                     logger.info(f"便秘検索で関連性の低いカテゴリを除外: {result.product_name} ({result.category})")
+                    
+            elif is_std_query:
+                # 性病・感染症検索で関連性の低いカテゴリを除外
+                category = result.category if result.category else ""
+                if any(excluded_cat == category for excluded_cat in exclude_categories_for_std):
+                    should_exclude = True
+                    logger.info(f"性病・感染症検索で関連性の低いカテゴリを除外: {result.product_name} ({result.category})")
             
             if not should_exclude:
                 filtered_results.append(result)
@@ -380,6 +398,74 @@ class FAISSRAGSystem:
             filtered_results.sort(key=diet_priority_sort)
             
             logger.info(f"ダイエット検索優先度適用: {len([r for r in filtered_results if r.category == 'ダイエット'])}件のダイエット商品を優先表示")
+        
+        elif is_std_query:
+            # 性病・感染症検索の優先度ソート
+            def std_priority_sort(result):
+                if result.category == "性病・感染症の治療薬":
+                    subcategory = result.metadata.get('subcategory', '') if result.metadata else ''
+                    
+                    # 症状・病名別の詳細優先度
+                    if any(kw in query_lower for kw in ["クラミジア"]):
+                        if "クラミジア治療薬" in subcategory:
+                            return 1  # クラミジア専用薬最優先
+                        return 10  # その他感染症薬
+                    
+                    elif any(kw in query_lower for kw in ["淋病", "りんびょう"]):
+                        if "淋病" in subcategory:
+                            return 1  # 淋病専用薬最優先
+                        elif "クラミジア治療薬" in subcategory:
+                            return 2  # クラミジア薬（淋病にも有効）
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["梅毒", "ばいどく"]):
+                        if "梅毒" in subcategory:
+                            return 1  # 梅毒専用薬最優先
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["ヘルペス", "帯状疱疹", "水ぶくれ"]):
+                        if "ヘルペス" in subcategory:
+                            return 1  # ヘルペス専用薬最優先
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["カンジダ", "膣炎", "かゆみ"]):
+                        if "カンジダ" in subcategory:
+                            return 1  # カンジダ専用薬最優先
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["水虫", "いんきん", "真菌"]):
+                        if "水虫・いんきんたむし" in subcategory:
+                            return 1  # 水虫専用薬最優先
+                        elif "カンジダ" in subcategory:
+                            return 2  # 抗真菌薬
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["コンジローマ", "いぼ", "hpv"]):
+                        if "コンジローマ" in subcategory:
+                            return 1  # コンジローマ専用薬最優先
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["トリコモナス", "膣炎", "原虫"]):
+                        if "トリコモナス" in subcategory:
+                            return 1  # トリコモナス専用薬最優先
+                        return 10
+                    
+                    elif any(kw in query_lower for kw in ["hiv", "エイズ", "prep"]):
+                        if "HIV" in subcategory or "エイズ" in subcategory:
+                            return 1  # HIV専用薬最優先
+                        return 10
+                    
+                    # 一般的な性病・感染症検索：CSV順序に基づく優先度
+                    csv_order = result.metadata.get('csv_order', 999) if result.metadata else 999
+                    return csv_order
+                
+                # 非感染症薬は低い優先度
+                return 500 + (result.metadata.get('csv_order', 999) if result.metadata else 999)
+            
+            # 感染症薬優先でソート
+            filtered_results.sort(key=std_priority_sort)
+            
+            logger.info(f"性病・感染症検索優先度適用: {len([r for r in filtered_results if r.category == '性病・感染症の治療薬'])}件の感染症治療薬を優先表示")
         
         return filtered_results
     
@@ -602,8 +688,16 @@ class FAISSRAGSystem:
             ]
             is_constipation_query = any(keyword in query_lower for keyword in constipation_keywords)
             
+            # 性病・感染症関連キーワードかチェック
+            std_keywords = [
+                "性病", "感染症", "クラミジア", "淋病", "梅毒", "ヘルペス", "カンジダ", 
+                "トリコモナス", "コンジローマ", "hiv", "エイズ", "水虫", "いんきんたむし",
+                "抗生物質", "抗ウイルス薬", "抗真菌薬", "std", "sti", "性感染症"
+            ]
+            is_std_query = any(keyword in query_lower for keyword in std_keywords)
+            
             # 検索を実行（ED検索の場合はより多くの候補を取得）
-            if is_ed_query or is_beauty_query or is_diet_query or is_constipation_query:
+            if is_ed_query or is_beauty_query or is_diet_query or is_constipation_query or is_std_query:
                 search_k = min(self.index.ntotal, 35)  # カテゴリー特化検索では全商品を取得
             else:
                 search_k = min(top_k * 3, self.index.ntotal)  # 通常は3倍の候補を取得
@@ -654,16 +748,39 @@ class FAISSRAGSystem:
                         adjusted_score += 0.15  # ニキビ関連の大幅ボーナス
                     elif any(kw in query_lower for kw in ["まつ毛", "まつげ"]) and "まつげ" in subcategory:
                         adjusted_score += 0.15  # まつげ関連の大幅ボーナス
-                    elif any(kw in query_lower for kw in ["日焼け", "紫外線"]) and "日焼け止め" in subcategory:
-                        adjusted_score += 0.15  # 日焼け止め関連の大幅ボーナス
-                    elif any(kw in query_lower for kw in ["むくみ"]) and "むくみ解消" in subcategory:
-                        adjusted_score += 0.15  # むくみ関連の大幅ボーナス
-                    elif any(kw in query_lower for kw in ["バスト", "胸"]) and "バストアップ" in subcategory:
-                        adjusted_score += 0.15  # バストアップ関連の大幅ボーナス
                     else:
                         adjusted_score += 0.10  # 美容商品全般のボーナス
                     
                     logger.info(f"美容商品スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
+                
+                # 性病・感染症検索の場合、感染症治療薬にスコアボーナス
+                elif is_std_query and metadata.get('category') == '性病・感染症の治療薬':
+                    # サブカテゴリー別の詳細ボーナス
+                    subcategory = metadata.get('subcategory', '').strip()
+                    
+                    # 検索クエリに応じた症状別ボーナス
+                    if any(kw in query_lower for kw in ["クラミジア"]) and "クラミジア治療薬" in subcategory:
+                        adjusted_score += 0.20  # クラミジア専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["淋病", "りんびょう"]) and "淋病" in subcategory:
+                        adjusted_score += 0.20  # 淋病専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["梅毒", "ばいどく"]) and "梅毒" in subcategory:
+                        adjusted_score += 0.20  # 梅毒専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["ヘルペス", "帯状疱疹"]) and "ヘルペス" in subcategory:
+                        adjusted_score += 0.20  # ヘルペス専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["カンジダ", "膣炎"]) and "カンジダ" in subcategory:
+                        adjusted_score += 0.20  # カンジダ専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["水虫", "いんきん"]) and "水虫" in subcategory:
+                        adjusted_score += 0.20  # 水虫専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["コンジローマ", "いぼ"]) and "コンジローマ" in subcategory:
+                        adjusted_score += 0.20  # コンジローマ専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["トリコモナス", "原虫"]) and "トリコモナス" in subcategory:
+                        adjusted_score += 0.20  # トリコモナス専用薬の大幅ボーナス
+                    elif any(kw in query_lower for kw in ["hiv", "エイズ", "prep"]) and ("HIV" in subcategory or "エイズ" in subcategory):
+                        adjusted_score += 0.20  # HIV専用薬の大幅ボーナス
+                    else:
+                        adjusted_score += 0.10  # 感染症薬全般のボーナス
+                    
+                    logger.info(f"感染症治療薬スコアボーナス: {metadata.get('name')} {score:.3f} -> {adjusted_score:.3f}")
                 
                 search_result = SearchResult(
                     product_name=metadata.get('name', ''),
