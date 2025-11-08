@@ -35,13 +35,15 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Streamlitページ設定
-st.set_page_config(
-    page_title="お薬通販部 商品レコメンド",
-    page_icon="💊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Streamlitページ設定（一度だけ実行）
+if 'page_config_set' not in st.session_state:
+    st.set_page_config(
+        page_title="お薬通販部 商品レコメンド",
+        page_icon="💊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    st.session_state.page_config_set = True
 
 # スタイル設定
 st.markdown("""
