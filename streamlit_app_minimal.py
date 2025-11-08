@@ -32,7 +32,7 @@ if query:
     for product in products:
         score = 0
         product_name = str(product.get('商品名', ''))
-        category = str(product.get('カテゴリ', ''))
+        category = str(product.get('カテゴリ名', ''))
         
         if query.lower() in product_name.lower():
             score += 3
@@ -49,7 +49,7 @@ if query:
         
         for product, score in results[:5]:
             st.write(f"**{product.get('商品名', '')}**")
-            st.write(f"カテゴリ: {product.get('カテゴリ', '')}")
+            st.write(f"カテゴリ: {product.get('カテゴリ名', '')}")
             st.write("---")
     else:
         st.write("該当商品なし")
