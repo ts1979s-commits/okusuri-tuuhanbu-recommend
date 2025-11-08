@@ -254,7 +254,35 @@ def basic_search(query, top_k=5):
         'エイズ': [{'product': 'テンビルEM', 'subcategory': 'HIV（エイズ）'}]
     }
     
-    # 厳密検索かどうかを判定
+    # サプリメント・健康食品の検索マッピング（主要商品とカテゴリ）
+    supplement_mapping = {
+        # 具体的なキーワード（優先マッチ）
+        'edサプリ': [{'product': 'スペマン', 'category': 'EDサプリ'}],
+        '薄毛サプリ': [{'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'}],
+        'トリファラ': [{'product': 'トリファラ', 'category': 'ダイエット'}],
+        'プエラリア': [{'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'}],
+        'グルタチオン': [{'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}],
+
+        # より一般的なキーワード（フォールバック）
+        'サプリメント': [
+            {'product': 'スペマン', 'category': 'EDサプリ'},
+            {'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'},
+            {'product': 'アーユスリム', 'category': 'ダイエット'},
+            {'product': 'トリファラ', 'category': 'ダイエット'},
+            {'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'},
+            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}
+        ],
+        'サプリ': [
+            {'product': 'スペマン', 'category': 'EDサプリ'},
+            {'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'},
+            {'product': 'アーユスリム', 'category': 'ダイエット'},
+            {'product': 'トリファラ', 'category': 'ダイエット'},
+            {'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'},
+            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}
+        ]
+    }
+    
+    # 厳密検索かどうかを判定（性病・感染症）
     is_strict_search = False
     matched_condition = None
     
@@ -264,7 +292,17 @@ def basic_search(query, top_k=5):
             matched_condition = condition
             break
     
-    # 厳密検索の場合
+    # サプリメント検索かどうかを判定
+    is_supplement_search = False
+    matched_supplement = None
+    
+    for supplement_key in supplement_mapping.keys():
+        if supplement_key in query_lower:
+            is_supplement_search = True
+            matched_supplement = supplement_key
+            break
+    
+    # 性病・感染症の厳密検索の場合
     if is_strict_search:
         allowed_products = strict_std_mapping[matched_condition]
         found_products = set()  # 重複防止用
@@ -316,6 +354,44 @@ def basic_search(query, top_k=5):
                             )
                             results.append(result)
                             break  # この商品は見つかったので次へ
+        
+        return results[:top_k]
+    
+    # サプリメント専用検索の場合
+    if is_supplement_search:
+        allowed_products = supplement_mapping[matched_supplement]
+        found_products = set()  # 重複防止用
+        
+        for product_info in allowed_products:
+            product_name = product_info['product']
+            category = product_info['category']
+            
+            for _, row in df.iterrows():
+                # 商品名の部分一致チェック
+                is_product_match = product_name in str(row['商品名'])
+                
+                # 商品名が一致し、まだ見つかっていない場合
+                if (is_product_match and 
+                    product_name not in found_products):
+                    
+                    # ダイエットカテゴリまたは美容・スキンケアカテゴリまたはサプリ関連であることを確認
+                    if (category in str(row['カテゴリ名']) or 
+                        'サプリ' in str(row['検索キーワード']) or
+                        'サプリメント' in str(row['検索キーワード'])):
+                        
+                        found_products.add(product_name)
+                        
+                        result = BasicSearchResult(
+                            product_name=row['商品名'],
+                            effect=row['効果'],
+                            ingredient=row['有効成分'],
+                            category=row['カテゴリ名'],
+                            description=row['説明文'],
+                            url=row['商品URL'],
+                            similarity_score=95.0  # サプリ専用検索スコア
+                        )
+                        results.append(result)
+                        break  # この商品は見つかったので次へ
         
         return results[:top_k]
     
