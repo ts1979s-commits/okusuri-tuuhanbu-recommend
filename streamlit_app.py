@@ -156,16 +156,43 @@ def main():
             st.success("✅ AI機能が利用可能です")
         except Exception as e:
             error_msg = str(e)
-            if "proxies" in error_msg:
-                st.warning("⚠️ OpenAI接続設定エラー: プロキシ設定に問題があります。基本検索モードで動作します。")
-            elif "OPENAI_API_KEY" in error_msg:
-                st.warning("⚠️ OpenAI APIキーの設定に問題があります。基本検索モードで動作します。")
-            elif "依存関係" in error_msg:
-                st.warning("⚠️ 必要なライブラリが不足しています。基本検索モードで動作します。")
+            error_type = type(e).__name__
+            logger.error(f"AI機能初期化エラー: {error_type}: {error_msg}")
+            
+            # より詳細なエラー分類
+            if "proxies" in error_msg.lower() or "プロキシ" in error_msg:
+                st.error("🔧 **プロキシ設定エラー**: OpenAI接続でプロキシ設定に問題があります")
+                st.info("💡 **解決方法**: ")
+                st.markdown("""
+                1. プロキシ設定を確認してください
+                2. ネットワーク管理者にお問い合わせください
+                3. VPN接続をご確認ください
+                """)
+            elif "got an unexpected keyword argument 'proxies'" in error_msg:
+                st.error("🔧 **OpenAIライブラリ設定エラー**: プロキシ引数の競合が発生しています")
+                st.info("💡 **解決方法**: システム管理者にお問い合わせください（ライブラリバージョンの問題）")
+            elif "api_key" in error_msg.lower() or "apikey" in error_msg.lower():
+                st.warning("🔑 **APIキー設定エラー**: OpenAI APIキーの設定に問題があります")
+                st.info("💡 **解決方法**: OPENAI_API_KEYを正しく設定してください")
+            elif "connection" in error_msg.lower() or "network" in error_msg.lower():
+                st.warning("🌐 **接続エラー**: OpenAIサービスへの接続に失敗しました")
+                st.info("💡 **解決方法**: インターネット接続を確認してください")
+            elif "依存関係" in error_msg or "dependencies" in error_msg.lower():
+                st.warning("📦 **依存関係エラー**: 必要なライブラリが不足しています")
+                st.info("💡 **解決方法**: requirements.txtの依存関係をインストールしてください")
+            elif "timeout" in error_msg.lower():
+                st.warning("⏰ **タイムアウトエラー**: OpenAI APIの応答が遅延しています")
+                st.info("💡 **解決方法**: しばらく時間をおいてから再試行してください")
             else:
-                st.warning(f"⚠️ AI機能の初期化に失敗: {error_msg}")
-            st.info("💡 基本検索機能は正常に利用できます")
-            logger.warning(f"AI機能初期化失敗: {e}")
+                st.warning(f"⚠️ **AI機能初期化エラー**: {error_type}")
+                with st.expander("詳細エラー情報"):
+                    st.code(error_msg)
+                    if st.secrets.get("debug_mode", False):
+                        import traceback
+                        st.code(traceback.format_exc())
+            
+            st.success("✅ 基本検索機能は正常に利用できます")
+            logger.warning(f"AI機能初期化失敗、基本モードで継続: {e}")
     else:
         if not OPENAI_API_KEY:
             st.info("ℹ️ OpenAI APIキーが設定されていません。基本検索モードで動作します。")
