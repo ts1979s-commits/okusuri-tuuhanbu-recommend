@@ -259,26 +259,26 @@ def basic_search(query, top_k=5):
         # 具体的なキーワード（優先マッチ）
         'edサプリ': [{'product': 'スペマン', 'category': 'EDサプリ'}],
         '薄毛サプリ': [{'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'}],
-        'トリファラ': [{'product': 'トリファラ', 'category': 'ダイエット'}],
-        'プエラリア': [{'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'}],
-        'グルタチオン': [{'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}],
+        'トリファラ': [{'product': 'トリファラ', 'category': 'ダイエットサプリ'}],
+        'プエラリア': [{'product': 'プエラリアミリフィカタブレット', 'category': '美容サプリ'}],
+        'グルタチオン': [{'product': 'L-グルタチオン（バイタルミー）', 'category': '美容サプリ'}],
 
         # より一般的なキーワード（フォールバック）
         'サプリメント': [
             {'product': 'スペマン', 'category': 'EDサプリ'},
             {'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'},
-            {'product': 'アーユスリム', 'category': 'ダイエット'},
-            {'product': 'トリファラ', 'category': 'ダイエット'},
-            {'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'},
-            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}
+            {'product': 'アーユスリム', 'category': 'ダイエットサプリ'},
+            {'product': 'トリファラ', 'category': 'ダイエットサプリ'},
+            {'product': 'プエラリアミリフィカタブレット', 'category': '美容サプリ'},
+            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容サプリ'}
         ],
         'サプリ': [
             {'product': 'スペマン', 'category': 'EDサプリ'},
             {'product': 'プレミアムリジン', 'category': '男性薄毛サプリ'},
-            {'product': 'アーユスリム', 'category': 'ダイエット'},
-            {'product': 'トリファラ', 'category': 'ダイエット'},
-            {'product': 'プエラリアミリフィカタブレット', 'category': '美容・スキンケア'},
-            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容・スキンケア'}
+            {'product': 'アーユスリム', 'category': 'ダイエットサプリ'},
+            {'product': 'トリファラ', 'category': 'ダイエットサプリ'},
+            {'product': 'プエラリアミリフィカタブレット', 'category': '美容サプリ'},
+            {'product': 'L-グルタチオン（バイタルミー）', 'category': '美容サプリ'}
         ]
     }
     
