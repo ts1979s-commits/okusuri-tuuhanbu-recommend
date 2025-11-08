@@ -219,6 +219,13 @@ class FAISSRAGSystem:
                     return 1  # 低優先度
             
             filtered_results.sort(key=ed_priority_sort)
+            
+            # フィルタリング後にED治療薬が少ない場合、追加で検索
+            ed_drugs_found = [r for r in filtered_results if r.category == "ED治療薬"]
+            if len(ed_drugs_found) < 5:  # 5種類のED薬が表示されていない場合
+                all_ed_drugs = [r for r in results if r.category == "ED治療薬" and r not in filtered_results]
+                needed_count = min(5 - len(ed_drugs_found), len(all_ed_drugs))
+                filtered_results.extend(all_ed_drugs[:needed_count])
         
         return filtered_results
     
@@ -395,8 +402,9 @@ class FAISSRAGSystem:
             query_vector = np.array([query_embedding], dtype=np.float32)
             faiss.normalize_L2(query_vector)
             
-            # 検索を実行
-            scores, indices = self.index.search(query_vector, min(top_k, self.index.ntotal))
+            # 検索を実行（ED検索の場合はより多くの候補を取得）
+            search_k = min(top_k * 3, self.index.ntotal)  # 3倍の候補を取得
+            scores, indices = self.index.search(query_vector, search_k)
             
             # 結果を整形
             results = []
