@@ -472,6 +472,7 @@ class FAISSRAGSystem:
     def _simple_text_search(self, query: str, top_k: int) -> List[SearchResult]:
         """シンプルな文字列検索（確実に動作する基本検索）"""
         results = []
+        seen_products = set()  # 重複商品名を追跡
         query_lower = query.lower().strip()
         logger.info(f"シンプル文字列検索: '{query_lower}'")
         logger.info(f"検索対象データ数: {len(self.metadata_list)}")
@@ -481,6 +482,12 @@ class FAISSRAGSystem:
             return results
         
         for i, metadata in enumerate(self.metadata_list):
+            # 商品名の重複チェック
+            product_name = metadata.get('name', '')
+            if product_name in seen_products:
+                logger.info(f"重複商品をスキップ: {product_name}")
+                continue
+            seen_products.add(product_name)
             # 全フィールドを文字列として結合（キーワードフィールドも含める）
             search_text = " ".join([
                 metadata.get('category', ''),
@@ -541,6 +548,7 @@ class FAISSRAGSystem:
     def _keyword_exact_search(self, query: str, top_k: int) -> List[SearchResult]:
         """キーワード完全一致検索（全フィールド対象）"""
         results = []
+        seen_products = set()  # 重複商品名を追跡
         query_lower = query.lower().strip()
         logger.info(f"キーワード完全一致検索: '{query_lower}'")
         logger.info(f"検索対象データ数: {len(self.metadata_list)}")
@@ -550,6 +558,12 @@ class FAISSRAGSystem:
             return results
         
         for i, metadata in enumerate(self.metadata_list):
+            # 商品名の重複チェック
+            product_name = metadata.get('name', '')
+            if product_name in seen_products:
+                logger.info(f"重複商品をスキップ: {product_name}")
+                continue
+            seen_products.add(product_name)
             # 検索対象フィールド
             search_fields = {
                 'category': metadata.get('category', ''),           # カテゴリ名
@@ -705,11 +719,20 @@ class FAISSRAGSystem:
             
             # 結果を整形
             results = []
+            seen_products = set()  # 重複商品名を追跡
+            
             for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
                 if idx == -1:  # 無効なインデックス
                     continue
                     
                 metadata = self.metadata_list[idx]
+                
+                # 商品名の重複チェック
+                product_name = metadata.get('name', '')
+                if product_name in seen_products:
+                    logger.info(f"重複商品をスキップ: {product_name}")
+                    continue
+                seen_products.add(product_name)
                 
                 # ダイエット検索の場合、ダイエット商品にスコアボーナス
                 adjusted_score = float(score)
