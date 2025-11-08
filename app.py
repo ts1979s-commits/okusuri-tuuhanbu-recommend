@@ -410,6 +410,9 @@ def basic_search(query, top_k=5):
         '感染症': ['クラミジア', '淋病', '梅毒', 'ヘルペス', 'カンジダ', 'トリコモナス', 'コンジローマ', 'HIV']
     }
     
+    # 重複防止用セット
+    found_products = set()
+    
     for _, row in df.iterrows():
         score = 0.0
         search_text = ""
@@ -461,30 +464,20 @@ def basic_search(query, top_k=5):
                         score += 7.0
                         
         if score > 0:
-            result = BasicSearchResult(
-                product_name=row['商品名'],
-                effect=row['効果'],
-                ingredient=row['有効成分'],
-                category=row['カテゴリ名'],
-                description=row['説明文'],
-                url=row['商品URL'],
-                similarity_score=score
-            )
-            results.append(result)
-    
-    # スコア順にソート
-                        
-        if score > 0:
-            result = BasicSearchResult(
-                product_name=row['商品名'],
-                effect=row['効果'],
-                ingredient=row['有効成分'],
-                category=row['カテゴリ名'],
-                description=row['説明文'],
-                url=row['商品URL'],
-                similarity_score=score
-            )
-            results.append(result)
+            product_name = row['商品名']
+            # 重複チェック - 同じ商品が既に追加されていないかチェック
+            if product_name not in found_products:
+                found_products.add(product_name)
+                result = BasicSearchResult(
+                    product_name=product_name,
+                    effect=row['効果'],
+                    ingredient=row['有効成分'],
+                    category=row['カテゴリ名'],
+                    description=row['説明文'],
+                    url=row['商品URL'],
+                    similarity_score=score
+                )
+                results.append(result)
     
     # スコア順にソート
     results.sort(key=lambda x: x.similarity_score, reverse=True)
