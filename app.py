@@ -2,22 +2,7 @@
 Streamlit Web UI - お薬通販部商品レコメンドLLMアプリ
 ユーザーフレンドリーなWeb インターフェース
 """
-
-# 最初にStreamlitをインポートして設定
 import streamlit as st
-
-# ページ設定（最初に一度だけ）
-try:
-    st.set_page_config(
-        page_title="お薬通販部 商品レコメンド",
-        page_icon="💊",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-except st.errors.StreamlitAPIException:
-    # 既に設定済みの場合は無視
-    pass
-
 import sys
 import os
 from typing import List, Dict, Any
@@ -27,28 +12,23 @@ import time
 # パスを追加
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    from src.faiss_rag_system import FAISSRAGSystem
-except ImportError as e:
-    st.error(f"モジュールのインポートエラー: {e}")
-    st.stop()
+from src.faiss_rag_system import FAISSRAGSystem
+from src.scraper import OkusuriScraper
+from config.settings import get_settings
 
-try:
-    from src.scraper import OkusuriScraper
-except ImportError:
-    st.warning("スクレイパーモジュールが利用できません")
-    OkusuriScraper = None
-
-try:
-    from config.settings import get_settings
-    settings = get_settings()
-except ImportError:
-    st.warning("設定モジュールが利用できません")
-    settings = None
+settings = get_settings()
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Streamlitページ設定
+st.set_page_config(
+    page_title="お薬通販部 商品レコメンド",
+    page_icon="💊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # スタイル設定
 st.markdown("""
@@ -144,19 +124,29 @@ def initialize_recommendation_engine():
         
     except Exception as e:
         error_msg = str(e)
-        st.error(f"❌ システム初期化エラー: {error_msg}")
+        error_type = type(e).__name__
         
-        # 詳細なエラー情報
-        with st.expander("🔧 エラー詳細", expanded=False):
-            st.write(f"**エラータイプ:** {type(e).__name__}")
-            st.write(f"**エラーメッセージ:** {error_msg}")
+        # プロキシエラーの特別処理
+        if error_type == "ProxyConnectionError":
+            st.warning("🔧 **プロキシ設定のため AI機能は利用できません**")
+            st.info("Streamlit Cloud環境のプロキシ設定により、OpenAI APIに接続できませんでした。基本検索機能をご利用ください。")
+        elif "proxy" in error_msg.lower() or "プロキシ" in error_msg:
+            st.warning("🔧 **プロキシ設定エラー**: AI機能が利用できません")
+            st.info("基本検索機能は正常にご利用いただけます。")
+        else:
+            st.error(f"❌ システム初期化エラー: {error_msg}")
             
-            # 環境情報
-            import sys
-            st.write(f"**Python バージョン:** {sys.version}")
+            # 詳細なエラー情報
+            with st.expander("🔧 エラー詳細", expanded=False):
+                st.write(f"**エラータイプ:** {type(e).__name__}")
+                st.write(f"**エラーメッセージ:** {error_msg}")
+                
+                # 環境情報
+                import sys
+                st.write(f"**Python バージョン:** {sys.version}")
         
         # 軽量版システムを返す（基本的な機能のみ）
-        st.warning("⚠️ システムは制限モードで動作しています")
+        st.info("💡 基本検索機能は正常にご利用いただけます")
         st.info("🔄 「リロード」ボタンまたはページの再読み込みを試してください")
         return None
 
