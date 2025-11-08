@@ -2,7 +2,22 @@
 Streamlit Web UI - お薬通販部商品レコメンドLLMアプリ
 ユーザーフレンドリーなWeb インターフェース
 """
+
+# 最初にStreamlitをインポートして設定
 import streamlit as st
+
+# ページ設定（最初に一度だけ）
+try:
+    st.set_page_config(
+        page_title="お薬通販部 商品レコメンド",
+        page_icon="💊",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+except st.errors.StreamlitAPIException:
+    # 既に設定済みの場合は無視
+    pass
+
 import sys
 import os
 from typing import List, Dict, Any
@@ -34,16 +49,6 @@ except ImportError:
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Streamlitページ設定（一度だけ実行）
-if 'page_config_set' not in st.session_state:
-    st.set_page_config(
-        page_title="お薬通販部 商品レコメンド",
-        page_icon="💊",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-    st.session_state.page_config_set = True
 
 # スタイル設定
 st.markdown("""
