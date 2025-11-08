@@ -50,13 +50,35 @@ class FAISSRAGSystem:
             if key in os.environ:
                 del os.environ[key]
         
+        # OpenAIクライアント初期化（複数の方法を試行）
+        self.client = None
+        
+        # 方法1: 基本的な初期化
         try:
-            self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
-        except TypeError as te:
-            if "proxies" in str(te):
-                self.client = OpenAI(api_key=openai_api_key)
-            else:
-                raise
+            self.client = OpenAI(api_key=openai_api_key)
+            logger.info("OpenAIクライアント初期化成功（基本）")
+        except Exception as e1:
+            logger.warning(f"基本初期化失敗: {e1}")
+            
+            # 方法2: タイムアウト付き
+            try:
+                self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
+                logger.info("OpenAIクライアント初期化成功（タイムアウト付き）")
+            except Exception as e2:
+                logger.warning(f"タイムアウト付き初期化失敗: {e2}")
+                
+                # 方法3: 最小限の設定
+                try:
+                    import openai
+                    openai.api_key = openai_api_key
+                    self.client = OpenAI(api_key=openai_api_key)
+                    logger.info("OpenAIクライアント初期化成功（最小限）")
+                except Exception as e3:
+                    logger.error(f"全ての初期化方法が失敗: {e1}, {e2}, {e3}")
+                    raise RuntimeError(f"OpenAIクライアント初期化失敗: {e3}")
+        
+        if self.client is None:
+            raise RuntimeError("OpenAIクライアントの初期化に失敗しました")
         
         # FAISS設定
         self.index = None

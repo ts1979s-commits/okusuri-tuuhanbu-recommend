@@ -144,15 +144,28 @@ def main():
             with st.spinner("AI システム初期化中..."):
                 @st.cache_resource
                 def init_system():
-                    return FAISSRAGSystem()
+                    try:
+                        return FAISSRAGSystem()
+                    except Exception as init_error:
+                        logger.error(f"FAISSRAGSystem初期化エラー: {init_error}")
+                        raise init_error
                 
                 rag_system = init_system()
                 ai_mode = True
             
             st.success("✅ AI機能が利用可能です")
         except Exception as e:
-            st.warning(f"⚠️ AI機能の初期化に失敗: {e}")
-            st.info("基本検索モードで動作します")
+            error_msg = str(e)
+            if "proxies" in error_msg:
+                st.warning("⚠️ OpenAI接続設定エラー: プロキシ設定に問題があります。基本検索モードで動作します。")
+            elif "OPENAI_API_KEY" in error_msg:
+                st.warning("⚠️ OpenAI APIキーの設定に問題があります。基本検索モードで動作します。")
+            elif "依存関係" in error_msg:
+                st.warning("⚠️ 必要なライブラリが不足しています。基本検索モードで動作します。")
+            else:
+                st.warning(f"⚠️ AI機能の初期化に失敗: {error_msg}")
+            st.info("💡 基本検索機能は正常に利用できます")
+            logger.warning(f"AI機能初期化失敗: {e}")
     else:
         if not OPENAI_API_KEY:
             st.info("ℹ️ OpenAI APIキーが設定されていません。基本検索モードで動作します。")
