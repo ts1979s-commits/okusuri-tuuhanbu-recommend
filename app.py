@@ -374,7 +374,7 @@ def main():
     with col3:
         if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
             # 検索結果関連のセッション状態をクリア
-            keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_context', 'current_search_time', 'current_query']
+            keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query']
             for key in keys_to_clear:
                 if key in st.session_state:
                     del st.session_state[key]
@@ -393,7 +393,6 @@ def main():
                 # キャッシュされた結果を使用
                 cached_data = st.session_state[cache_key]
                 st.session_state['current_results'] = cached_data['results']
-                st.session_state['current_context'] = cached_data['context']
                 st.session_state['current_search_time'] = cached_data['search_time']
                 st.session_state['current_query'] = cached_data['query']
                 st.info("⚡ キャッシュされた検索結果を表示中")
@@ -466,9 +465,8 @@ def main():
                     logger.error(f"検索エラー: {e}")
         else:
             st.warning("検索クエリを入力してください。")    # 検索結果の表示（セッションに保存された結果がある場合）
-    if 'current_results' in st.session_state and 'current_context' in st.session_state:
+    if 'current_results' in st.session_state:
         results = st.session_state['current_results']
-        context = st.session_state['current_context']
         search_time = st.session_state.get('current_search_time', 0)
         query = st.session_state.get('current_query', '')
         
@@ -483,10 +481,7 @@ def main():
         with col2:
             st.metric("検索時間", f"{search_time:.2f}秒")
         with col3:
-            st.markdown(f'<span class="query-type-badge">タイプ: {context.query_type.value}</span>', unsafe_allow_html=True)
-        
-        if show_details and context.extracted_keywords:
-            st.write("**抽出されたキーワード:**", ", ".join(context.extracted_keywords))
+            st.markdown('<span class="query-type-badge">FAISS検索</span>', unsafe_allow_html=True)
         
         # 検索結果の表示
         if results:
