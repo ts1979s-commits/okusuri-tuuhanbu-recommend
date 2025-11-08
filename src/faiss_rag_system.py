@@ -47,52 +47,112 @@ class FAISSRAGSystem:
         
         # プロキシクリア（強化版）
         proxy_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']
+        # プロキシ関連環境変数の完全削除
+        proxy_vars = [
+            'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 
+            'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
+            'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'
+        ]
+        
         for key in proxy_vars:
             if key in os.environ:
                 logger.info(f"削除: {key}={os.environ[key]}")
                 del os.environ[key]
         
-        # OpenAIクライアント初期化（プロキシ対応版）
+        # urllib3とrequestsのプロキシ設定も無効化
+        try:
+            import urllib3
+            urllib3.util.connection.create_connection = urllib3.util.connection.create_connection
+        except:
+            pass
+            
+        # requestsライブラリのプロキシ無効化
+        try:
+            import requests
+            # グローバル設定でプロキシを無効化
+            requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS = 'ALL'
+            requests.Session.proxies = {}
+        except:
+            pass
+        
+        # OpenAIクライアント初期化（強化版プロキシ対応）
         self.client = None
         
-        # 方法1: プロキシ無効化での初期化
+        # 方法1: 完全プロキシ無効化での初期化
         try:
-            logger.info("プロキシ無効化でのOpenAI初期化を試行")
+            logger.info("完全プロキシ無効化でのOpenAI初期化を試行")
             import httpx
             
-            # プロキシを明示的に無効化したhttpxクライアント
-            custom_client = httpx.Client(proxies={}, verify=True, timeout=60.0)
+            # より積極的なプロキシ無効化設定
+            custom_client = httpx.Client(
+                proxies=None,  # Noneで完全無効化
+                verify=True,
+                timeout=httpx.Timeout(60.0, connect=30.0),
+                follow_redirects=True
+            )
             
             # OpenAIクライアントにカスタムHTTPクライアントを設定
-            self.client = OpenAI(api_key=openai_api_key, http_client=custom_client)
-            logger.info("✅ OpenAIクライアント初期化成功（プロキシ無効化）")
+            self.client = OpenAI(
+                api_key=openai_api_key, 
+                http_client=custom_client,
+                timeout=60.0,
+                max_retries=2
+            )
+            
+            # 接続テスト
+            logger.info("接続テスト実行中...")
+            models = self.client.models.list()
+            logger.info(f"接続テスト成功: {len(models.data)} モデル確認")
+            logger.info("✅ OpenAIクライアント初期化成功（完全プロキシ無効化）")
             
         except Exception as e_proxy:
-            logger.warning(f"プロキシ無効化初期化失敗: {e_proxy}")
+            logger.warning(f"完全プロキシ無効化初期化失敗: {e_proxy}")
             
-            # 方法2: 基本的な初期化
+            # 方法2: 空辞書プロキシでの初期化
             try:
-                self.client = OpenAI(api_key=openai_api_key)
-                logger.info("✅ OpenAIクライアント初期化成功（基本）")
-            except Exception as e1:
-                logger.warning(f"基本初期化失敗: {e1}")
+                logger.info("空辞書プロキシでのOpenAI初期化を試行")
+                import httpx
                 
-                # 方法3: タイムアウト付き
+                custom_client = httpx.Client(
+                    proxies={},  # 空の辞書
+                    verify=True,
+                    timeout=60.0
+                )
+                
+                self.client = OpenAI(api_key=openai_api_key, http_client=custom_client)
+                logger.info("✅ OpenAIクライアント初期化成功（空辞書プロキシ）")
+                
+            except Exception as e_empty:
+                logger.warning(f"空辞書プロキシ初期化失敗: {e_empty}")
+            
+                # 方法3: 基本的な初期化
                 try:
-                    self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
-                    logger.info("✅ OpenAIクライアント初期化成功（タイムアウト付き）")
-                except Exception as e2:
-                    logger.warning(f"タイムアウト付き初期化失敗: {e2}")
+                    self.client = OpenAI(api_key=openai_api_key)
+                    logger.info("✅ OpenAIクライアント初期化成功（基本）")
+                except Exception as e1:
+                    logger.warning(f"基本初期化失敗: {e1}")
                     
-                    # 方法4: 最小限の設定
+                    # 方法4: タイムアウト付き
                     try:
-                        import openai
-                        openai.api_key = openai_api_key
-                        self.client = OpenAI(api_key=openai_api_key)
-                        logger.info("✅ OpenAIクライアント初期化成功（最小限）")
-                    except Exception as e3:
-                        logger.error(f"全ての初期化方法が失敗: プロキシ無効={e_proxy}, 基本={e1}, タイムアウト={e2}, 最小限={e3}")
-                        raise RuntimeError(f"OpenAI接続に失敗しました。プロキシ設定またはAPIキーを確認してください: {e3}")
+                        self.client = OpenAI(api_key=openai_api_key, timeout=30.0)
+                        logger.info("✅ OpenAIクライアント初期化成功（タイムアウト付き）")
+                    except Exception as e2:
+                        logger.warning(f"タイムアウト付き初期化失敗: {e2}")
+                        
+                        # 方法5: 最小限の設定（最後の手段）
+                        try:
+                            import openai
+                            openai.api_key = openai_api_key
+                            self.client = OpenAI(api_key=openai_api_key)
+                            logger.info("✅ OpenAIクライアント初期化成功（最小限）")
+                        except Exception as e3:
+                            logger.error(f"全ての初期化方法が失敗:")
+                            logger.error(f"  完全プロキシ無効: {e_proxy}")
+                            logger.error(f"  空辞書プロキシ: {e_empty}")
+                            logger.error(f"  基本: {e1}")
+                            logger.error(f"  タイムアウト: {e2}")
+                            logger.error(f"  最小限: {e3}")
+                            raise RuntimeError(f"OpenAI接続に完全に失敗しました。プロキシ設定またはAPIキーを確認してください: {e3}")
         
         if self.client is None:
             raise RuntimeError("OpenAIクライアントの初期化に失敗しました")
