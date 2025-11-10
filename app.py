@@ -198,17 +198,19 @@ def initialize_recommendation_engine():
 
 class BasicSearchResult:
     """基本検索結果のクラス"""
-    def __init__(self, product_name, effect, ingredient, category, description, url, similarity_score=0.0):
+    def __init__(self, product_name, effect, ingredient, category, description, url, image_url='', similarity_score=0.0):
         self.product_name = product_name
         self.effect = effect
         self.ingredient = ingredient
         self.category = category
         self.description = description
         self.url = url
+        self.image_url = image_url
         self.similarity_score = similarity_score
         self.metadata = {
             'effect': effect,
-            'ingredient': ingredient
+            'ingredient': ingredient,
+            'image_url': image_url
         }
 
 @st.cache_data
@@ -358,6 +360,7 @@ def basic_search(query, top_k=5):
                                 category=row['カテゴリ名'],
                                 description=row['説明文'],
                                 url=row['商品URL'],
+                                image_url=row.get('商品画像URL', ''),
                                 similarity_score=100.0  # 厳密一致なので最高スコア
                             )
                             results.append(result)
@@ -396,6 +399,7 @@ def basic_search(query, top_k=5):
                             category=row['カテゴリ名'],
                             description=row['説明文'],
                             url=row['商品URL'],
+                            image_url=row.get('商品画像URL', ''),
                             similarity_score=95.0  # サプリ専用検索スコア
                         )
                         results.append(result)
@@ -475,6 +479,7 @@ def basic_search(query, top_k=5):
                     category=row['カテゴリ名'],
                     description=row['説明文'],
                     url=row['商品URL'],
+                    image_url=row.get('商品画像URL', ''),
                     similarity_score=score
                 )
                 results.append(result)
@@ -491,28 +496,85 @@ def initialize_scraper():
 def display_search_result(result, index: int):
     """検索結果を表示"""
     with st.container():
+        # デバッグ情報
+        # st.write(f"DEBUG - result type: {type(result)}")
+        # st.write(f"DEBUG - result attributes: {dir(result)}")
+        
         # メタデータから効果と有効成分を取得（英語キーで取得）
         effect = result.metadata.get('effect', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
         active_ingredient = result.metadata.get('ingredient', 'N/A') if hasattr(result, 'metadata') and result.metadata else 'N/A'
+        image_url = result.metadata.get('image_url', '') if hasattr(result, 'metadata') and result.metadata else ''
         
-        st.markdown(f"""
-        <div class="result-card" style="
-            border: 1px solid var(--text-color, #ddd);
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 1rem 0;
-            background-color: var(--secondary-background-color, #f9f9f9);
-            color: var(--text-color, #333);
-        ">
-            <h4 style="color: var(--text-color, #333);">🏷️ {result.product_name}</h4>
-            <p style="color: var(--text-color, #333);"><strong>⚗️ 有効成分:</strong> {active_ingredient}</p>
-            <p style="color: var(--text-color, #333);"><strong>✨ 効果:</strong> {effect}</p>
-            <p style="color: var(--text-color, #333);"><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
-            <p style="color: var(--text-color, #333);"><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
-            <p style="color: var(--text-color, #333);"><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
-            <span class="score-badge">類似度: {result.similarity_score:.3f}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        # レイアウト用の列を作成
+        col1, col2 = st.columns([1, 3])
+        
+        # 商品画像を表示
+        with col1:
+            if image_url and image_url.strip():
+                try:
+                    # グレーの枠線付きで画像を表示
+                    st.markdown(f"""
+                    <div style="
+                        border: 2px solid #ddd;
+                        border-radius: 8px;
+                        padding: 8px;
+                        background-color: #fff;
+                        text-align: center;
+                        margin-bottom: 10px;
+                    ">
+                        <img src="{image_url}" style="
+                            width: 150px;
+                            height: auto;
+                            border-radius: 4px;
+                            display: block;
+                            margin: 0 auto;
+                        ">
+                    </div>
+                    """, unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"画像読み込みエラー: {e}")
+                    st.info("📸 画像を読み込み中...")
+            else:
+                st.markdown(f"""
+                <div style="
+                    border: 2px solid #ddd;
+                    border-radius: 8px;
+                    padding: 20px;
+                    background-color: #fff;
+                    text-align: center;
+                    margin-bottom: 10px;
+                    color: #666;
+                    min-height: 150px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    📦 商品画像<br>準備中
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # 商品情報を表示
+        with col2:
+            st.markdown(f"""
+            <div class="result-card" style="
+                border: 1px solid var(--text-color, #ddd);
+                border-radius: 10px;
+                padding: 1rem;
+                margin: 0;
+                background-color: var(--secondary-background-color, #f9f9f9);
+                color: var(--text-color, #333);
+            ">
+                <h4 style="color: var(--text-color, #333); margin-top: 0;">🏷️ {result.product_name}</h4>
+                <p style="color: var(--text-color, #333);"><strong>⚗️ 有効成分:</strong> {active_ingredient}</p>
+                <p style="color: var(--text-color, #333);"><strong>✨ 効果:</strong> {effect}</p>
+                <p style="color: var(--text-color, #333);"><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
+                <p style="color: var(--text-color, #333);"><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
+                <p style="color: var(--text-color, #333);"><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
+                <span class="score-badge">類似度: {result.similarity_score:.3f}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("---")
 
 def display_system_status():
     """システム状態を表示"""
@@ -757,7 +819,8 @@ def main():
                 st.info("⚡ キャッシュされた検索結果を表示中")
             else:
                 try:
-                    engine = initialize_recommendation_engine()
+                    # 一時的にRAGシステムを無効にして基本検索を使用
+                    engine = None  # initialize_recommendation_engine()
                     
                     # エンジンが正常に初期化されたか確認
                     if engine is None:
@@ -845,7 +908,7 @@ def main():
         with col2:
             st.metric("検索時間", f"{search_time:.2f}秒")
         with col3:
-            st.markdown('<span class="query-type-badge">FAISS検索</span>', unsafe_allow_html=True)
+            st.markdown('<span class="query-type-badge">基本検索</span>', unsafe_allow_html=True)
         
         # 検索結果の表示
         if results:
