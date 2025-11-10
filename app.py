@@ -523,7 +523,7 @@ def display_search_result(result, index: int):
                         margin-bottom: 10px;
                     ">
                         <img src="{image_url}" style="
-                            width: 150px;
+                            width: 200px;
                             height: auto;
                             border-radius: 4px;
                             display: block;
@@ -544,7 +544,7 @@ def display_search_result(result, index: int):
                     text-align: center;
                     margin-bottom: 10px;
                     color: #666;
-                    min-height: 150px;
+                    min-height: 200px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
