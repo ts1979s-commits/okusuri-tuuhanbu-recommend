@@ -104,7 +104,7 @@ st.markdown("""
         border: 1px solid var(--border-color);
         border-radius: 10px;
         padding: 1.5rem;
-        margin: 1rem 0;
+        margin: 0;
         background-color: var(--card-background);
         color: var(--text-color);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
