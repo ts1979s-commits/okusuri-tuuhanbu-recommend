@@ -63,6 +63,7 @@ logger = logging.getLogger(__name__)
 
 # スタイル設定
 st.markdown("""
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     .main-header {
         font-size: 2.5rem;
@@ -94,6 +95,14 @@ st.markdown("""
     .stButton > button[kind="secondary"]:hover {
         background-color: #ff6b6b !important;
         border-color: #ff6b6b !important;
+    }
+    
+    /* Font Awesomeアイコンスタイル */
+    .fa {
+        margin-right: 8px;
+    }
+    .fas {
+        margin-right: 8px;
     }
     
     /* ダークモード対応 */
@@ -525,7 +534,7 @@ def display_search_result(result, index: int):
                     """, unsafe_allow_html=True)
                 except Exception as e:
                     st.error(f"画像読み込みエラー: {e}")
-                    st.info("📸 画像を読み込み中...")
+                    st.markdown('<div style="padding: 0.75rem 1rem; background: #e7f3ff; border-left: 4px solid #1f77b4; border-radius: 0.25rem;"><i class="fas fa-image"></i> 画像を読み込み中...</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div style="
@@ -541,7 +550,7 @@ def display_search_result(result, index: int):
                     align-items: center;
                     justify-content: center;
                 ">
-                    📦 商品画像<br>準備中
+                    <i class="fas fa-image" style="font-size: 2rem; opacity: 0.5;"></i><br>商品画像<br>準備中
                 </div>
                 """, unsafe_allow_html=True)
         
@@ -556,12 +565,12 @@ def display_search_result(result, index: int):
                 background-color: var(--secondary-background-color, #f9f9f9);
                 color: var(--text-color, #333);
             ">
-                <h4 style="color: var(--text-color, #333); margin-top: 0;">🏷️ {result.product_name}</h4>
-                <p style="color: var(--text-color, #333);"><strong>⚗️ 有効成分:</strong> {active_ingredient}</p>
-                <p style="color: var(--text-color, #333);"><strong>✨ 効果:</strong> {effect}</p>
-                <p style="color: var(--text-color, #333);"><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
-                <p style="color: var(--text-color, #333);"><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
-                <p style="color: var(--text-color, #333);"><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
+                <h4 style="color: var(--text-color, #333); margin-top: 0;"><i class="fas fa-box"></i> {result.product_name}</h4>
+                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-pills"></i> 有効成分:</strong> {active_ingredient}</p>
+                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-info-circle"></i> 効果:</strong> {effect}</p>
+                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-list-ul"></i> カテゴリ:</strong> {result.category or 'N/A'}</p>
+                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-info-circle"></i> 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
+                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-external-link-alt"></i> URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -668,7 +677,7 @@ def main():
         pass  # エラーメッセージを表示せず、静かに基本機能で動作
     
     # ヘッダー
-    st.markdown('<h1 class="main-header">💊 お薬通販部 商品レコメンド AI</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header"><i class="fas fa-pills"></i> お薬通販部 商品レコメンド AI</h1>', unsafe_allow_html=True)
     st.markdown("---")
     
     # サイドバー
@@ -682,12 +691,12 @@ def main():
         st.markdown("---")
         
         # 設定
-        st.subheader("⚙️ 検索設定")
+        st.markdown('### <i class="fas fa-cog"></i> 検索設定', unsafe_allow_html=True)
         max_results = st.slider("最大結果数", 1, 20, 5)
         show_details = st.checkbox("詳細情報を表示", value=False)
     
     # メインエリア
-    st.header("🔍 商品検索・レコメンド")
+    st.markdown('## <i class="fas fa-search"></i> 商品検索・レコメンド', unsafe_allow_html=True)
     
     # ご利用ガイドの設置
     with st.expander("📖 ご利用ガイド", expanded=False):
@@ -768,7 +777,7 @@ def main():
         # 赤色ボタンに設定
         search_button = st.button("🔍 検索・レコメンド", type="secondary", use_container_width=True)
     with col2:
-        if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア", use_container_width=True):
+        if st.button("🧹 画面クリア", help="検索結果と入力内容をクリア", use_container_width=True):
             # 検索結果関連のセッション状態をクリア
             keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query']
             for key in keys_to_clear:
@@ -874,7 +883,7 @@ def main():
         
         # 結果の表示
         st.markdown("---")
-        st.subheader("📋 検索結果")
+        st.markdown('### <i class="fas fa-list-ul"></i> 検索結果', unsafe_allow_html=True)
         
         # 検索情報
         col1, col2, col3 = st.columns(3)
@@ -887,7 +896,7 @@ def main():
         
         # 検索結果の表示
         if results:
-            st.markdown("### 🎯 おすすめ商品")
+            st.markdown('### <i class="fas fa-pills"></i> おすすめ商品', unsafe_allow_html=True)
             
             # デバッグ情報（開発用）
             if show_details:
@@ -949,7 +958,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.9rem;">
-        💊 お薬通販部 商品レコメンド AI
+        <i class="fas fa-pills"></i> お薬通販部 商品レコメンド AI
     </div>
     """, unsafe_allow_html=True)
 
