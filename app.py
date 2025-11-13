@@ -78,16 +78,12 @@ st.markdown("""
         background-color: #f9f9f9;
         color: #333;
     }
-    .score-badge {
-        background-color: #4CAF50;
+    .query-type-badge {
+        background-color: #2196F3;
         color: white;
         padding: 0.2rem 0.5rem;
         border-radius: 15px;
         font-size: 0.8rem;
-    }
-    .query-type-badge {
-        background-color: #2196F3;
-        color: white;
     }
     /* 検索ボタンを赤色に強制設定 */
     .stButton > button[kind="secondary"] {
@@ -98,10 +94,6 @@ st.markdown("""
     .stButton > button[kind="secondary"]:hover {
         background-color: #ff6b6b !important;
         border-color: #ff6b6b !important;
-    }
-        padding: 0.2rem 0.5rem;
-        border-radius: 15px;
-        font-size: 0.8rem;
     }
     
     /* ダークモード対応 */
@@ -570,7 +562,6 @@ def display_search_result(result, index: int):
                 <p style="color: var(--text-color, #333);"><strong>📂 カテゴリ:</strong> {result.category or 'N/A'}</p>
                 <p style="color: var(--text-color, #333);"><strong>📝 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
                 <p style="color: var(--text-color, #333);"><strong>🔗 URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
-                <span class="score-badge">類似度: {result.similarity_score:.3f}</span>
             </div>
             """, unsafe_allow_html=True)
         
@@ -684,12 +675,6 @@ def main():
     with st.sidebar:
         st.header("🔧 機能メニュー")
         
-        # システム状態
-        if st.checkbox("システム状態を表示", value=True):
-            display_system_status()
-        
-        st.markdown("---")
-        
         # データ取得機能（スクレイパーが利用可能な場合のみ）
         if SCRAPER_AVAILABLE and st.checkbox("商品データ取得"):
             scrape_products_interface()
@@ -699,7 +684,7 @@ def main():
         # 設定
         st.subheader("⚙️ 検索設定")
         max_results = st.slider("最大結果数", 1, 20, 5)
-        show_details = st.checkbox("詳細情報を表示", value=True)
+        show_details = st.checkbox("詳細情報を表示", value=False)
     
     # メインエリア
     st.header("🔍 商品検索・レコメンド")
@@ -750,49 +735,11 @@ def main():
     )
     
     # 検索ボタン
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2 = st.columns([3, 1])
     with col1:
         # 赤色ボタンに設定
         search_button = st.button("🔍 検索・レコメンド", type="secondary")
     with col2:
-        if st.button("🔄 リロード", help="システム再読み込み + ベクトルDB再構築（検索精度問題解決）"):
-            # リロード実行中の表示
-            with st.spinner("システム再構築中..."):
-                try:
-                    # ベクトルデータベースのキャッシュファイルを削除
-                    import os
-                    files_to_remove = [
-                        "./data/faiss_index.bin",
-                        "./data/metadata.pkl", 
-                        "./data/documents.pkl"
-                    ]
-                    removed_files = []
-                    for file_path in files_to_remove:
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                            removed_files.append(os.path.basename(file_path))
-                    
-                    # キャッシュをクリア
-                    st.cache_data.clear()
-                    st.cache_resource.clear()
-                    # セッション状態をリセット（ウィジェットキーは除外）
-                    widget_keys = ['search_input']  # ウィジェットのキーを除外
-                    for key in list(st.session_state.keys()):
-                        if key not in widget_keys:
-                            del st.session_state[key]
-                    
-                    if removed_files:
-                        st.success(f"✅ ベクトルDB再構築完了！削除ファイル: {', '.join(removed_files)}")
-                        st.info("🔄 次回検索時に最新CSVデータから自動構築されます")
-                    else:
-                        st.success("✅ システムリロード完了！")
-                    
-                    time.sleep(2)
-                except Exception as e:
-                    st.error(f"❌ 再構築エラー: {e}")
-                    time.sleep(1)
-            st.rerun()
-    with col3:
         if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
             # 検索結果関連のセッション状態をクリア
             keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query']
@@ -974,8 +921,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.9rem;">
-        💊 お薬通販部 商品レコメンド AI - フェーズ1実装<br>
-        Powered by OpenAI GPT + RAG + FAISS
+        💊 お薬通販部 商品レコメンド AI
     </div>
     """, unsafe_allow_html=True)
 
