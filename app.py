@@ -689,6 +689,34 @@ def main():
     # メインエリア
     st.header("🔍 商品検索・レコメンド")
     
+    # ご利用ガイドの設置
+    with st.expander("📖 ご利用ガイド", expanded=False):
+        st.markdown("""
+        ### 🌟 このシステムについて
+        お薬通販部の商品から、あなたの症状や悩みに最適な医薬品をAIがレコメンドします。
+        
+        ### 🔍 検索方法
+        **症状で検索:**
+        - 「頭痛が治らない」「抜け毛が増えた」など、具体的な症状を入力
+        - 「むくみ」「かゆみ」「ニキビ」など、気になる症状をそのまま入力
+        
+        **商品名で検索:**
+        - 「カマグラゴールド」「フィナクス」など、知っている商品名を入力
+        - 一部の名前でも検索可能です
+        
+        **カテゴリで検索:**
+        - 「ED治療薬」「AGA治療薬」「性病・感染症」など
+        
+        ### ⚠️ ご注意事項
+        - このシステムは情報提供のみを目的としています
+        - 実際の使用前には必ず医師にご相談ください
+        - 処方薬については医師の指導に従ってください
+        
+        ### 💡 コツ
+        - 具体的で詳しい症状を入力すると、より精度の高い結果が得られます
+        - 複数の症状がある場合は、一緒に入力してください
+        """)
+    
     # 検索例を表示
     with st.expander("💡 検索例", expanded=False):
         st.write("**症状での検索例:**")
@@ -734,13 +762,13 @@ def main():
         key="search_input"
     )
     
-    # 検索ボタン
-    col1, col2 = st.columns([3, 1])
+    # 検索ボタン（距離感を近く改善）
+    col1, col2 = st.columns([2.5, 1.5])
     with col1:
         # 赤色ボタンに設定
-        search_button = st.button("🔍 検索・レコメンド", type="secondary")
+        search_button = st.button("🔍 検索・レコメンド", type="secondary", use_container_width=True)
     with col2:
-        if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア"):
+        if st.button("🗑️ 画面クリア", help="検索結果と入力内容をクリア", use_container_width=True):
             # 検索結果関連のセッション状態をクリア
             keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query']
             for key in keys_to_clear:
