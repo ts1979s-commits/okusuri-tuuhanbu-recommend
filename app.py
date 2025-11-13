@@ -61,90 +61,188 @@ except ImportError as e:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# スタイル設定
+# スタイル設定（お薬通販部トーンマナー対応）
 st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .result-card {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 1rem 0;
-        background-color: #f9f9f9;
-        color: #333;
-    }
-    .query-type-badge {
-        background-color: #2196F3;
-        color: white;
-        padding: 0.2rem 0.5rem;
-        border-radius: 15px;
-        font-size: 0.8rem;
-    }
-    /* 検索ボタンを赤色に強制設定 */
-    .stButton > button[kind="secondary"] {
-        background-color: #ff4b4b !important;
-        color: white !important;
-        border-color: #ff4b4b !important;
-    }
-    .stButton > button[kind="secondary"]:hover {
-        background-color: #ff6b6b !important;
-        border-color: #ff6b6b !important;
+    /* お薬通販部ブランドカラーパレット */
+    :root {
+        --primary-color: #2E5BCE;
+        --secondary-color: #4CAF50;
+        --background-color: #FAFAFA;
+        --card-background: #FFFFFF;
+        --text-color: #333333;
+        --border-color: #E8E8E8;
+        --separator-color: #F0F0F0;
+        --hover-color: #1A3A8C;
+        --clear-button-color: #E0E0E0;
+        --success-color: #4CAF50;
+        --warning-color: #FF9800;
+        --error-color: #F44336;
     }
     
-    /* Font Awesomeアイコンスタイル */
-    .fa {
-        margin-right: 8px;
+    /* ダークモード用カラー */
+    [data-theme="dark"] {
+        --primary-color: #4A7CFF;
+        --background-color: #1A1A1A;
+        --card-background: #2D2D2D;
+        --text-color: #E0E0E0;
+        --border-color: #404040;
     }
-    .fas {
+    
+    /* メインヘッダー */
+    .main-header {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 600;
+    }
+    
+    /* 商品カード */
+    .result-card {
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        background-color: var(--card-background);
+        color: var(--text-color);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .result-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    /* バッジスタイル */
+    .query-type-badge {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    /* 検索ボタン（プライマリカラー） */
+    .stButton > button[kind="secondary"] {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-color) !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        padding: 0.5rem 1.5rem !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        background-color: var(--hover-color) !important;
+        border-color: var(--hover-color) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    /* クリアボタン */
+    .stButton > button[kind="primary"] {
+        background-color: var(--clear-button-color) !important;
+        color: var(--text-color) !important;
+        border-color: var(--clear-button-color) !important;
+    }
+    
+    /* Font Awesomeアイコン */
+    .fa, .fas {
         margin-right: 8px;
+        color: var(--primary-color);
+    }
+    
+    /* リンクスタイル */
+    a, .stMarkdown a {
+        color: var(--primary-color) !important;
+        text-decoration: none;
+    }
+    a:hover, .stMarkdown a:hover {
+        color: var(--hover-color) !important;
+        text-decoration: underline;
+    }
+    
+    /* セクション区切り線 */
+    hr {
+        border-color: var(--separator-color);
+    }
+    
+    /* 状態メッセージ */
+    .stSuccess {
+        background-color: var(--success-color) !important;
+    }
+    .stWarning {
+        background-color: var(--warning-color) !important;
+    }
+    .stError {
+        background-color: var(--error-color) !important;
+    }
+    
+    /* 画像枠線 */
+    .product-image-frame {
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 8px;
+        background-color: var(--card-background);
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    /* Streamlitコンポーネントの調整 */
+    .stExpander {
+        border-color: var(--border-color) !important;
+    }
+    
+    .stSelectbox > div > div {
+        border-color: var(--border-color) !important;
+    }
+    
+    .stTextInput > div > div > input {
+        border-color: var(--border-color) !important;
+    }
+    
+    /* サイドバースタイル */
+    .css-1d391kg {
+        background-color: var(--background-color) !important;
+    }
+    
+    /* フッタースタイル */
+    .footer-text {
+        color: #666;
+        font-size: 0.9rem;
+        text-align: center;
     }
     
     /* ダークモード対応 */
     @media (prefers-color-scheme: dark) {
         .result-card {
-            border: 1px solid #555;
-            background-color: #2d2d2d;
-            color: #e0e0e0;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-background);
+            color: var(--text-color);
         }
         .main-header {
-            color: #4da6ff;
+            color: var(--primary-color);
+        }
+        .fa, .fas {
+            color: var(--primary-color);
         }
     }
     
-    /* Streamlitのダークテーマ検出 */
+    /* Streamlitダークテーマ検出 */
     [data-theme="dark"] .result-card {
-        border: 1px solid #555;
-        background-color: #2d2d2d;
-        color: #e0e0e0;
+        border: 1px solid var(--border-color) !important;
+        background-color: var(--card-background) !important;
+        color: var(--text-color) !important;
     }
+    
     [data-theme="dark"] .main-header {
-        color: #4da6ff;
+        color: var(--primary-color) !important;
     }
     
-    /* 強制的にダークモード対応（フォールバック） */
-    .stApp[data-theme="dark"] .result-card {
-        border: 1px solid #555 !important;
-        background-color: #2d2d2d !important;
-        color: #e0e0e0 !important;
-    }
-    
-    /* Streamlit CSS変数を使用した対応 */
-    .result-card {
-        border: 1px solid var(--text-color-light, #ddd);
-        background-color: var(--background-color-secondary, #f9f9f9);
-        color: var(--text-color, #333);
-    }
-    .result-card h4, .result-card p, .result-card strong {
-        color: var(--text-color, #333) !important;
-    }
-    .result-card a {
-        color: var(--primary-color, #0066cc) !important;
+    [data-theme="dark"] .fa, [data-theme="dark"] .fas {
+        color: var(--primary-color) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -513,16 +611,9 @@ def display_search_result(result, index: int):
         with col1:
             if image_url and image_url.strip():
                 try:
-                    # グレーの枠線付きで画像を表示
+                    # お薬通販部スタイルの画像枠
                     st.markdown(f"""
-                    <div style="
-                        border: 2px solid #ddd;
-                        border-radius: 8px;
-                        padding: 8px;
-                        background-color: #fff;
-                        text-align: center;
-                        margin-bottom: 10px;
-                    ">
+                    <div class="product-image-frame">
                         <img src="{image_url}" style="
                             width: 200px;
                             height: auto;
@@ -534,43 +625,46 @@ def display_search_result(result, index: int):
                     """, unsafe_allow_html=True)
                 except Exception as e:
                     st.error(f"画像読み込みエラー: {e}")
-                    st.markdown('<div style="padding: 0.75rem 1rem; background: #e7f3ff; border-left: 4px solid #1f77b4; border-radius: 0.25rem;"><i class="fas fa-image"></i> 画像を読み込み中...</div>', unsafe_allow_html=True)
+                    st.markdown('<div style="padding: 0.75rem 1rem; background: #e7f3ff; border-left: 4px solid var(--primary-color); border-radius: 0.25rem;"><i class="fas fa-image"></i> 画像を読み込み中...</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                <div style="
-                    border: 2px solid #ddd;
-                    border-radius: 8px;
-                    padding: 20px;
-                    background-color: #fff;
-                    text-align: center;
-                    margin-bottom: 10px;
-                    color: #666;
+                <div class="product-image-frame" style="
                     min-height: 200px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    flex-direction: column;
+                    color: #666;
                 ">
-                    <i class="fas fa-image" style="font-size: 2rem; opacity: 0.5;"></i><br>商品画像<br>準備中
+                    <i class="fas fa-image" style="font-size: 2rem; opacity: 0.5; margin-bottom: 8px;"></i>
+                    <div>商品画像</div>
+                    <div>準備中</div>
                 </div>
                 """, unsafe_allow_html=True)
         
         # 商品情報を表示
         with col2:
             st.markdown(f"""
-            <div class="result-card" style="
-                border: 1px solid var(--text-color, #ddd);
-                border-radius: 10px;
-                padding: 1rem;
-                margin: 0;
-                background-color: var(--secondary-background-color, #f9f9f9);
-                color: var(--text-color, #333);
-            ">
-                <h4 style="color: var(--text-color, #333); margin-top: 0;"><i class="fas fa-box"></i> {result.product_name}</h4>
-                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-pills"></i> 有効成分:</strong> {active_ingredient}</p>
-                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-info-circle"></i> 効果:</strong> {effect}</p>
-                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-list-ul"></i> カテゴリ:</strong> {result.category or 'N/A'}</p>
-                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-info-circle"></i> 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}</p>
-                <p style="color: var(--text-color, #333);"><strong><i class="fas fa-external-link-alt"></i> URL:</strong> <a href="{result.url}" target="_blank" style="color: var(--primary-color, #0066cc);">商品ページを開く</a></p>
+            <div class="result-card">
+                <h4 style="color: var(--text-color); margin-top: 0; margin-bottom: 1rem;">
+                    <i class="fas fa-box"></i> {result.product_name}
+                </h4>
+                <p style="color: var(--text-color); margin-bottom: 0.8rem;">
+                    <strong><i class="fas fa-pills"></i> 有効成分:</strong> {active_ingredient}
+                </p>
+                <p style="color: var(--text-color); margin-bottom: 0.8rem;">
+                    <strong><i class="fas fa-info-circle"></i> 効果:</strong> {effect}
+                </p>
+                <p style="color: var(--text-color); margin-bottom: 0.8rem;">
+                    <strong><i class="fas fa-list-ul"></i> カテゴリ:</strong> {result.category or 'N/A'}
+                </p>
+                <p style="color: var(--text-color); margin-bottom: 0.8rem;">
+                    <strong><i class="fas fa-info-circle"></i> 説明:</strong> {(result.description or 'N/A')[:200]}{'...' if len(result.description or '') > 200 else ''}
+                </p>
+                <p style="color: var(--text-color); margin-bottom: 0;">
+                    <strong><i class="fas fa-external-link-alt"></i> URL:</strong> 
+                    <a href="{result.url}" target="_blank" style="color: var(--primary-color);">商品ページを開く</a>
+                </p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -957,8 +1051,10 @@ def main():
     # フッター
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; color: #666; font-size: 0.9rem;">
-        <i class="fas fa-pills"></i> お薬通販部 商品レコメンド AI
+    <div class="footer-text">
+        <i class="fas fa-pills" style="color: var(--primary-color);"></i> お薬通販部 商品レコメンド AI
+        <br>
+        <small style="color: #999;">安心・安全な医薬品選びをサポート</small>
     </div>
     """, unsafe_allow_html=True)
 
