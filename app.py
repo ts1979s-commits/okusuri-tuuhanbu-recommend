@@ -188,6 +188,22 @@ st.markdown("""
         margin-top: 0.7em !important;
         margin-bottom: 0.4em !important;
     }
+
+    /* expander内の見出しサイズ調整（最強版） */
+    .stExpander [data-testid="stMarkdownContainer"] h2,
+    .stExpander [data-testid="stMarkdownContainer"] h3,
+    .stExpander [data-testid="stMarkdownContainer"] h4,
+    .stExpander [data-testid="stMarkdownContainer"] span,
+    .stExpander [data-testid="stMarkdownContainer"] div,
+    .stExpanderContent [data-testid="stMarkdownContainer"] h2,
+    .stExpanderContent [data-testid="stMarkdownContainer"] h3,
+    .stExpanderContent [data-testid="stMarkdownContainer"] h4,
+    .stExpanderContent [data-testid="stMarkdownContainer"] span,
+    .stExpanderContent [data-testid="stMarkdownContainer"] div {
+        font-size: 1.1rem !important;
+        font-weight: bold !important;
+        line-height: 1.4 !important;
+    }
     
     /* リンクスタイル */
     a, .stMarkdown a {
