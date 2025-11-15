@@ -729,7 +729,7 @@ def main():
         ### <i class="fas fa-lightbulb"></i> コツ
         - 具体的で詳しい症状を入力すると、より精度の高い結果が得られます
         - 複数の症状がある場合は、一緒に入力してください
-        """)
+        """, unsafe_allow_html=True)
     
     # 検索例を表示
     st.markdown('### <i class="fas fa-lightbulb"></i> 検索例', unsafe_allow_html=True)
