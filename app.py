@@ -800,7 +800,7 @@ def main():
     max_results = 10  # デフォルト値
     
     st.markdown('<div class="section-heading"><i class="fas fa-cog"></i> 検索設定</div>', unsafe_allow_html=True)
-    with st.expander("設定を変更", expanded=True):
+    with st.expander("設定を変更", expanded=False):
         max_results = st.slider("最大結果数", 1, 20, 10, help="一度に表示する検索結果の件数を選択してください")
     
     # 検索フォーム
