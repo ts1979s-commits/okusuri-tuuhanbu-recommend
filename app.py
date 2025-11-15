@@ -856,7 +856,7 @@ def main():
                 del st.session_state[key]
             # クリア状態フラグを設定
             st.session_state['clear_requested'] = True
-            st.markdown('<div style="color: #4CAF50; background-color: #E8F5E8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #4CAF50;"><i class="fas fa-check-circle"></i> <strong>画面とキャッシュをクリアしました</strong></div>', unsafe_allow_html=True)
+            # メッセージ表示を削除
             time.sleep(0.5)
             st.rerun()
     
