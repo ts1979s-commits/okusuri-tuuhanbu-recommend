@@ -56,6 +56,19 @@ logger = logging.getLogger(__name__)
 
 # スタイル設定（お薬通販部トーンマナー対応）
 st.markdown("""
+    /* 検索結果数バッジ */
+    .result-count-badge {
+        display: inline-block;
+        background: #F5F7FA;
+        color: #333;
+        font-size: 0.95rem;
+        font-weight: 500;
+        border-radius: 12px;
+        padding: 0.15rem 0.8rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #E0E0E0;
+        letter-spacing: 0.5px;
+    }
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     /* お薬通販部ブランドカラーパレット */
@@ -893,23 +906,18 @@ def main():
         results = st.session_state['current_results']
         search_time = st.session_state.get('current_search_time', 0)
         query = st.session_state.get('current_query', '')
-        
+
         # 結果の表示
         st.markdown("---")
         st.markdown('### <i class="fas fa-list-ul"></i> 検索結果', unsafe_allow_html=True)
-        
-        # 検索情報（結果数のみ表示）
-        st.metric("結果数", len(results))
+        # 検索情報（結果数をコンパクトなバッジで表示）
+        st.markdown(f'<span class="result-count-badge">結果数: {len(results)}</span>', unsafe_allow_html=True)
 
-        # 開発者向け情報（検索時間・設定値・基本検索バッジ）は非表示に変更
-        
         # 検索結果の表示
         if results:
             st.markdown('### <i class="fas fa-pills"></i> おすすめ商品', unsafe_allow_html=True)
-            
             for i, result in enumerate(results):
                 display_search_result(result, i)
-                
         else:
             st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
             st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
