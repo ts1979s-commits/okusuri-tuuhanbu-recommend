@@ -874,9 +874,7 @@ def main():
                         results = basic_search(user_query, max_results)  # max_resultsを正しく渡す
                         search_time = time.time() - start_time
                     
-                    if results:
-                        st.markdown(f'<div style="color: #4CAF50; background-color: #E8F5E8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #4CAF50;"><i class="fas fa-check-circle"></i> <strong>検索完了！</strong>{len(results)}件の商品が見つかりました（{search_time:.2f}秒）</div>', unsafe_allow_html=True)
-                    else:
+                    if not results:
                         st.markdown('<div style="color: #FF9800; background-color: #FFF3E0; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #FF9800;"><i class="fas fa-question-circle"></i> 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。</div>', unsafe_allow_html=True)
                         
                 else:
