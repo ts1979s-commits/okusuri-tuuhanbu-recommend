@@ -129,19 +129,20 @@ st.markdown("""
         font-weight: 500;
     }
     
-    /* 検索ボタン（プライマリカラー） */
+    /* 検索・リコメンドボタン（赤色） */
     .stButton > button[kind="secondary"] {
-        background-color: var(--primary-color) !important;
+        background-color: #E53935 !important; /* 赤色 */
         color: white !important;
-        border-color: var(--primary-color) !important;
+        border-color: #E53935 !important;
         border-radius: 8px !important;
         font-weight: 500 !important;
         padding: 0.5rem 1.5rem !important;
         transition: all 0.3s ease !important;
+        box-shadow: 0 2px 4px rgba(229,57,53,0.15);
     }
     .stButton > button[kind="secondary"]:hover {
-        background-color: var(--hover-color) !important;
-        border-color: var(--hover-color) !important;
+        background-color: #B71C1C !important; /* 濃い赤 */
+        border-color: #B71C1C !important;
         transform: translateY(-1px) !important;
     }
     
