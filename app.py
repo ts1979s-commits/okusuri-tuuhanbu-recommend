@@ -848,7 +848,7 @@ def main():
     max_results = 5  # デフォルト値
     show_details = False  # デフォルト値
     
-    with st.expander("⚙️ 検索設定", expanded=False):
+    with st.expander("⚙️ 検索設定", expanded=True):
         st.markdown("### <i class=\"fas fa-cog\"></i> 詳細設定")
         max_results = st.slider("最大結果数", 1, 20, 5, help="一度に表示する検索結果の件数を選択してください")
         show_details = st.checkbox("詳細情報を表示", value=False, help="商品の詳細情報を追加で表示します")
