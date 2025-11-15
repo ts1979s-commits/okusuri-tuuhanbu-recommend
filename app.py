@@ -172,6 +172,15 @@ st.markdown("""
         margin-right: 8px;
         color: var(--primary-color);
     }
+    /* expander内の見出しサイズ調整 */
+    .stExpander h2,
+    .stExpander h3,
+    .stExpander h4 {
+        font-size: 1.1rem !important;
+        font-weight: bold !important;
+        margin-top: 0.7em !important;
+        margin-bottom: 0.4em !important;
+    }
     
     /* リンクスタイル */
     a, .stMarkdown a {
