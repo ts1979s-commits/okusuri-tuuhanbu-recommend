@@ -91,6 +91,17 @@ st.markdown("""
         margin-bottom: 2rem;
         font-weight: 600;
     }
+    /* サブヘッダー（商品検索・レコメンド用） */
+    .sub-header {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--text-color);
+        margin-bottom: 1rem;
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
     
     /* 商品カード */
     .result-card {
@@ -712,7 +723,7 @@ def main():
     st.markdown("---")
     
     # メインエリア
-    st.markdown('## <i class="fas fa-search"></i> 商品検索・レコメンド', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header"><i class="fas fa-search"></i> 商品検索・レコメンド</div>', unsafe_allow_html=True)
     
     # ご利用ガイドの設置
     st.markdown('<div class="section-heading"><i class="fas fa-book-open"></i> ご利用ガイド</div>', unsafe_allow_html=True)
