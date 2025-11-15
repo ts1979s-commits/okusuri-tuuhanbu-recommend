@@ -208,6 +208,18 @@ st.markdown("""
         text-align: center;
     }
     
+    /* セクション見出しのサイズ調整 */
+    .section-heading {
+        font-size: 1.2rem !important;
+        margin-bottom: 0.5rem !important;
+        margin-top: 1rem !important;
+    }
+    
+    .section-heading i {
+        margin-right: 8px;
+        color: var(--primary-color);
+    }
+    
     /* ダークモード対応 */
     @media (prefers-color-scheme: dark) {
         .result-card {
@@ -703,7 +715,7 @@ def main():
     st.markdown('## <i class="fas fa-search"></i> 商品検索・レコメンド', unsafe_allow_html=True)
     
     # ご利用ガイドの設置
-    st.markdown('### <i class="fas fa-book-open"></i> ご利用ガイド', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading"><i class="fas fa-book-open"></i> ご利用ガイド</div>', unsafe_allow_html=True)
     with st.expander("詳細を表示", expanded=False):
         st.markdown("""
         ### <i class="fas fa-star"></i> このシステムについて
@@ -732,7 +744,7 @@ def main():
         """, unsafe_allow_html=True)
     
     # 検索例を表示
-    st.markdown('### <i class="fas fa-lightbulb"></i> 検索例', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading"><i class="fas fa-lightbulb"></i> 検索例</div>', unsafe_allow_html=True)
     with st.expander("検索例を見る", expanded=False):
         st.write("**症状での検索例:**")
         st.write("- 抜け毛が増えた")
@@ -764,7 +776,7 @@ def main():
     # 検索設定をメインページに移動（デフォルト値を先に設定）
     max_results = 10  # デフォルト値
     
-    st.markdown('### <i class="fas fa-cog"></i> 検索設定', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading"><i class="fas fa-cog"></i> 検索設定</div>', unsafe_allow_html=True)
     with st.expander("設定を変更", expanded=True):
         max_results = st.slider("最大結果数", 1, 20, 10, help="一度に表示する検索結果の件数を選択してください")
     
@@ -777,7 +789,7 @@ def main():
         st.session_state['clear_requested'] = False
     
     # 検索フォーム
-    st.markdown('### <i class="fas fa-comments"></i> 症状や探している商品を入力してください', unsafe_allow_html=True)
+    st.markdown('<div class="section-heading"><i class="fas fa-comments"></i> 症状や探している商品を入力してください</div>', unsafe_allow_html=True)
     user_query = st.text_input(
         "検索内容:",
         value=default_value,
