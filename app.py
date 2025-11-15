@@ -72,7 +72,7 @@ st.markdown("""
     }
     /* お薬通販部ブランドカラーパレット */
     :root {
-        --primary-color: #2E5BCE;
+        --primary-color: #073084;
         --secondary-color: #4CAF50;
         --background-color: #FAFAFA;
         --card-background: #FFFFFF;
@@ -88,7 +88,7 @@ st.markdown("""
     
     /* ダークモード用カラー */
     [data-theme="dark"] {
-        --primary-color: #4A7CFF;
+        --primary-color: #073084;
         --background-color: #1A1A1A;
         --card-background: #2D2D2D;
         --text-color: #E0E0E0;
