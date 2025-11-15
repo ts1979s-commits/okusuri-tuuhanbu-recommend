@@ -898,18 +898,10 @@ def main():
         st.markdown("---")
         st.markdown('### <i class="fas fa-list-ul"></i> 検索結果', unsafe_allow_html=True)
         
-        # 検索情報
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("結果数", len(results))
-        with col2:
-            st.metric("検索時間", f"{search_time:.2f}秒")
-        with col3:
-            # 現在の設定値も表示
-            current_max_results = st.session_state.get('current_max_results', max_results)
-            st.metric("設定値", f"{current_max_results}件まで")
-        
-        st.markdown('<span class="query-type-badge">基本検索</span>', unsafe_allow_html=True)
+        # 検索情報（結果数のみ表示）
+        st.metric("結果数", len(results))
+
+        # 開発者向け情報（検索時間・設定値・基本検索バッジ）は非表示に変更
         
         # 検索結果の表示
         if results:
