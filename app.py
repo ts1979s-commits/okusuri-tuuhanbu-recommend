@@ -793,7 +793,7 @@ def main():
     user_query = st.text_input(
         "検索内容:",
         value=default_value,
-        placeholder="例: 有効成分ミノキシジルのAGA治療薬を教えてください。",
+        placeholder="例: 抜け毛が増えた",
         help="症状、商品名、カテゴリなど自然な言葉で入力できます",
         key="search_input"
     )
