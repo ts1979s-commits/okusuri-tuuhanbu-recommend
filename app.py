@@ -844,7 +844,10 @@ def main():
         st.write("- ニキビ")
         st.write("- ダイエット")
     
-    # 検索設定をメインページに移動
+    # 検索設定をメインページに移動（デフォルト値を先に設定）
+    max_results = 5  # デフォルト値
+    show_details = False  # デフォルト値
+    
     with st.expander("⚙️ 検索設定", expanded=False):
         st.markdown("### <i class=\"fas fa-cog\"></i> 詳細設定")
         max_results = st.slider("最大結果数", 1, 20, 5, help="一度に表示する検索結果の件数を選択してください")
