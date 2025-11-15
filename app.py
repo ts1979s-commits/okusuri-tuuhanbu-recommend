@@ -783,11 +783,6 @@ def main():
             scrape_products_interface()
         
         st.markdown("---")
-        
-        # 設定
-        st.markdown('### <i class="fas fa-cog"></i> 検索設定', unsafe_allow_html=True)
-        max_results = st.slider("最大結果数", 1, 20, 5)
-        show_details = st.checkbox("詳細情報を表示", value=False)
     
     # メインエリア
     st.markdown('## <i class="fas fa-search"></i> 商品検索・レコメンド', unsafe_allow_html=True)
@@ -848,6 +843,12 @@ def main():
         st.write("- 性病・感染症の治療薬")
         st.write("- ニキビ")
         st.write("- ダイエット")
+    
+    # 検索設定をメインページに移動
+    with st.expander("⚙️ 検索設定", expanded=False):
+        st.markdown("### <i class=\"fas fa-cog\"></i> 詳細設定")
+        max_results = st.slider("最大結果数", 1, 20, 5, help="一度に表示する検索結果の件数を選択してください")
+        show_details = st.checkbox("詳細情報を表示", value=False, help="商品の詳細情報を追加で表示します")
     
     # 検索フォーム
     # クリア要求がある場合は空文字列、そうでなければセッション状態から取得
