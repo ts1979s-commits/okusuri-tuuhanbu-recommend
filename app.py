@@ -173,9 +173,16 @@ st.markdown("""
         color: var(--primary-color);
     }
     /* expander内の見出しサイズ調整 */
+    /* expander内の見出しサイズ調整（強化版） */
     .stExpander h2,
     .stExpander h3,
-    .stExpander h4 {
+    .stExpander h4,
+    .stExpander .stMarkdown h2,
+    .stExpander .stMarkdown h3,
+    .stExpander .stMarkdown h4,
+    .stExpanderContent h2,
+    .stExpanderContent h3,
+    .stExpanderContent h4 {
         font-size: 1.1rem !important;
         font-weight: bold !important;
         margin-top: 0.7em !important;
