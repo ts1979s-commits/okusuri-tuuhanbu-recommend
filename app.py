@@ -874,103 +874,62 @@ def main():
     with col2:
         if st.button("🧹 画面クリア", help="検索結果と入力内容をクリア", use_container_width=True):
             # 検索結果関連のセッション状態をクリア
-            keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query']
+            keys_to_clear = ['search_results', 'search_query', 'last_search', 'current_results', 'current_search_time', 'current_query', 'current_max_results']
             for key in keys_to_clear:
                 if key in st.session_state:
                     del st.session_state[key]
+            # すべての検索キャッシュも削除
+            cache_keys = [k for k in st.session_state.keys() if k.startswith('search_')]
+            for key in cache_keys:
+                del st.session_state[key]
             # クリア状態フラグを設定
             st.session_state['clear_requested'] = True
-            st.success("✅ 画面をクリアしました")
+            st.success("✅ 画面とキャッシュをクリアしました")
             time.sleep(0.5)
             st.rerun()
     
     # 検索実行
     if search_button or (user_query and user_query.strip()):
         if user_query.strip():
-            # 検索結果のキャッシュチェック
-            cache_key = f"search_{hash(user_query.strip())}"
-            if cache_key in st.session_state:
-                # キャッシュされた結果を使用
-                cached_data = st.session_state[cache_key]
-                st.session_state['current_results'] = cached_data['results']
-                st.session_state['current_search_time'] = cached_data['search_time']
-                st.session_state['current_query'] = cached_data['query']
-                st.info("⚡ キャッシュされた検索結果を表示中")
-            else:
-                try:
-                    # 一時的にRAGシステムを無効にして基本検索を使用
-                    engine = None  # initialize_recommendation_engine()
+            try:
+                # 一時的にRAGシステムを無効にして基本検索を使用
+                engine = None  # initialize_recommendation_engine()
+                
+                # エンジンが正常に初期化されたか確認
+                if engine is None:
+                    # AI機能が利用できない場合は静かに基本検索に切り替え
+                    with st.spinner("検索中..."):
+                        start_time = time.time()
+                        results = basic_search(user_query, max_results)  # max_resultsを正しく渡す
+                        search_time = time.time() - start_time
                     
-                    # エンジンが正常に初期化されたか確認
-                    if engine is None:
-                        # AI機能が利用できない場合は静かに基本検索に切り替え
-                        with st.spinner("検索中..."):
-                            start_time = time.time()
-                            results = basic_search(user_query, max_results)
-                            search_time = time.time() - start_time
-                        
-                        if results:
-                            st.success(f"✅ 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
-                        else:
-                            st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
-                            
+                    if results:
+                        st.success(f"✅ 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
                     else:
-                        with st.spinner("検索中..."):
-                            start_time = time.time()
-                            results = engine.search_products(
-                                user_query, 
-                                top_k=max_results
-                            )
-                            search_time = time.time() - start_time
-                    
-                    # 結果をセッションに保存
-                    st.session_state['current_results'] = results
-                    st.session_state['current_search_time'] = search_time
-                    st.session_state['current_query'] = user_query
-                    
-                    # 検索結果をキャッシュ（最大10件まで）
-                    st.session_state[cache_key] = {
-                        'results': results,
-                        'search_time': search_time,
-                        'query': user_query
-                    }
-                    
-                    # キャッシュサイズ制限
-                    cache_keys = [k for k in st.session_state.keys() if k.startswith('search_')]
-                    if len(cache_keys) > 10:
-                        oldest_key = min(cache_keys)
-                        del st.session_state[oldest_key]
+                        st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
                         
-                except Exception as e:
-                    st.error("❌ 検索中にエラーが発生しました")
-                    
-                    # エラーの詳細情報
-                    with st.expander("🔧 エラー詳細と対処法", expanded=True):
-                        error_type = type(e).__name__
-                        error_msg = str(e)
-                        
-                        st.write(f"**エラータイプ:** {error_type}")
-                        st.write(f"**エラーメッセージ:** {error_msg}")
-                        
-                        # 一般的なエラーの対処法
-                        st.markdown("### 💡 対処法")
-                        if "openai" in error_msg.lower():
-                            st.warning("🔑 **OpenAI APIの問題:** APIキーの確認またはネットワーク接続を確認してください")
-                        elif "faiss" in error_msg.lower():
-                            st.warning("🗃️ **検索インデックスの問題:** データベースの再構築が必要な可能性があります")
-                        elif "memory" in error_msg.lower() or "ram" in error_msg.lower():
-                            st.warning("💾 **メモリ不足:** 上部の「リロード」ボタンを押して再試行してください")
-                        else:
-                            st.info("🔄 **推奨対処順序:**")
-                            st.markdown("""
-                            1. **「リロード」ボタンを押す** （上部中央）
-                            2. **ページを再読み込み** (F5またはCtrl+R)
-                            3. **少し時間をおいて再試行**
-                            """)
-                    
-                    logger.error(f"検索エラー: {e}")
+                else:
+                    with st.spinner("検索中..."):
+                        start_time = time.time()
+                        results = engine.search_products(
+                            user_query, 
+                            top_k=max_results
+                        )
+                        search_time = time.time() - start_time
+                
+                # 結果をセッションに保存（キャッシュを無効にして毎回新しく検索）
+                st.session_state['current_results'] = results
+                st.session_state['current_search_time'] = search_time
+                st.session_state['current_query'] = user_query
+                st.session_state['current_max_results'] = max_results  # 検索時のmax_resultsも保存
+                
+            except Exception as e:
+                st.error(f"❌ 検索中にエラーが発生しました: {e}")
+                logger.error(f"検索エラー: {e}")
         else:
-            st.warning("検索クエリを入力してください。")    # 検索結果の表示（セッションに保存された結果がある場合）
+            st.warning("検索クエリを入力してください。")
+    
+    # 検索結果の表示（セッションに保存された結果がある場合）
     if 'current_results' in st.session_state:
         results = st.session_state['current_results']
         search_time = st.session_state.get('current_search_time', 0)
@@ -987,7 +946,11 @@ def main():
         with col2:
             st.metric("検索時間", f"{search_time:.2f}秒")
         with col3:
-            st.markdown('<span class="query-type-badge">基本検索</span>', unsafe_allow_html=True)
+            # 現在の設定値も表示
+            current_max_results = st.session_state.get('current_max_results', max_results)
+            st.metric("設定値", f"{current_max_results}件まで")
+        
+        st.markdown('<span class="query-type-badge">基本検索</span>', unsafe_allow_html=True)
         
         # 検索結果の表示
         if results:
