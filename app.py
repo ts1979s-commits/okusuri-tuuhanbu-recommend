@@ -845,10 +845,10 @@ def main():
         st.write("- ダイエット")
     
     # 検索設定をメインページに移動（デフォルト値を先に設定）
-    max_results = 5  # デフォルト値
+    max_results = 10  # デフォルト値
     
     with st.expander("⚙️ 検索設定", expanded=True):
-        max_results = st.slider("最大結果数", 1, 20, 5, help="一度に表示する検索結果の件数を選択してください")
+        max_results = st.slider("最大結果数", 1, 20, 10, help="一度に表示する検索結果の件数を選択してください")
     
     # 検索フォーム
     # クリア要求がある場合は空文字列、そうでなければセッション状態から取得
