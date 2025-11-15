@@ -15,8 +15,7 @@ try:
     st.set_page_config(
         page_title="お薬通販部 商品レコメンド",
         page_icon="💊",
-        layout="wide",
-        initial_sidebar_state="expanded"
+        layout="wide"
     )
 except st.errors.StreamlitAPIException:
     # 既に設定済みの場合は無視
@@ -37,12 +36,6 @@ try:
     FAISS_AVAILABLE = True
 except ImportError as e:
     FAISS_AVAILABLE = False
-
-try:
-    from src.scraper import OkusuriScraper
-    SCRAPER_AVAILABLE = True
-except ImportError as e:
-    SCRAPER_AVAILABLE = False
 
 try:
     import pandas as pd
@@ -261,12 +254,12 @@ def initialize_recommendation_engine():
         # エンジン初期化
         engine = FAISSRAGSystem()
         
-        # 軽量な初期化テスト
+        # 軽量な初期化テスト（サイレント実行）
         try:
             # システム状態確認（簡易版）
-            st.sidebar.write(f"✅ FAISS RAGシステム初期化完了")
+            pass  # サイドバー表示を削除
         except Exception as status_error:
-            st.sidebar.warning(f"⚠️ 状態確認エラー: {str(status_error)}")
+            pass  # エラー表示も削除
         
         return engine
         
@@ -587,11 +580,6 @@ def basic_search(query, top_k=5):
     results.sort(key=lambda x: x.similarity_score, reverse=True)
     return results[:top_k]
 
-@st.cache_resource
-def initialize_scraper():
-    """スクレイパーを初期化（キャッシュ付き）"""
-    return OkusuriScraper()
-
 def display_search_result(result, index: int):
     """検索結果を表示"""
     with st.container():
@@ -700,89 +688,16 @@ def display_system_status():
         st.error(f"システム状態の取得に失敗しました: {e}")
         st.info("簡略化モードで動作中です")
 
-def scrape_products_interface():
-    """商品データ取得インターフェース"""
-    st.subheader("🕷️ 商品データ取得")
-    st.write("お薬通販部サイトから商品情報を取得してデータベースに追加します。")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        max_products = st.number_input(
-            "取得する最大商品数", 
-            min_value=1, 
-            max_value=200, 
-            value=20,
-            help="多すぎるとAPIコストが高くなります"
-        )
-    
-    with col2:
-        st.write("⚠️ **注意事項:**")
-        st.write("- 取得には時間がかかります")
-        st.write("- OpenAI APIを使用します")
-        st.write("- 適切な間隔で実行してください")
-    
-    if st.button("🚀 商品データを取得開始", type="primary"):
-        try:
-            scraper = initialize_scraper()
-            
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            with st.spinner("商品データを取得中..."):
-                status_text.text("スクレイピングを開始しています...")
-                progress_bar.progress(0.1)
-                
-                # 商品データを取得
-                products = scraper.scrape_products(max_products=max_products)
-                progress_bar.progress(0.7)
-                
-                if products:
-                    status_text.text("データベースに保存中...")
-                    
-                    # JSONファイルに保存
-                    scraper.save_products(products, './data/products.json')
-                    progress_bar.progress(0.9)
-                    
-                    # RAGシステムに追加
-                    engine = initialize_recommendation_engine()
-                    engine.rag_system.load_products_from_json('./data/products.json')
-                    progress_bar.progress(1.0)
-                    
-                    st.success(f"✅ {len(products)}件の商品データを取得・保存しました！")
-                    status_text.text("完了")
-                    
-                    # 結果の一部を表示
-                    st.subheader("取得した商品例")
-                    for product in products[:3]:
-                        st.write(f"- {product.name} ({product.price})")
-                else:
-                    st.warning("⚠️ 商品データを取得できませんでした")
-                    
-        except Exception as e:
-            st.error(f"❌ エラーが発生しました: {e}")
-            logger.error(f"スクレイピングエラー: {e}")
-
 def main():
     """メインアプリケーション"""
     
     # システム状態確認を先に実行
-    if not FAISS_AVAILABLE and not SCRAPER_AVAILABLE:
+    if not FAISS_AVAILABLE:
         pass  # エラーメッセージを表示せず、静かに基本機能で動作
     
     # ヘッダー
     st.markdown('<h1 class="main-header"><i class="fas fa-pills"></i> お薬通販部 商品レコメンド AI</h1>', unsafe_allow_html=True)
     st.markdown("---")
-    
-    # サイドバー
-    with st.sidebar:
-        st.header("🔧 機能メニュー")
-        
-        # データ取得機能（スクレイパーが利用可能な場合のみ）
-        if SCRAPER_AVAILABLE and st.checkbox("商品データ取得"):
-            scrape_products_interface()
-        
-        st.markdown("---")
     
     # メインエリア
     st.markdown('## <i class="fas fa-search"></i> 商品検索・レコメンド', unsafe_allow_html=True)
