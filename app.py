@@ -772,6 +772,12 @@ def main():
         st.write("- アジー")
         st.write("- オルリガル")
         
+        st.write("**有効成分での検索例:**")
+        st.write("- シルデナフィル")
+        st.write("- ミノキシジル")
+        st.write("- オルリスタット")
+        st.write("- イソトレチノイン")
+        
         st.write("**カテゴリでの検索例:**")
         st.write("- ED治療薬")
         st.write("- AGA治療薬")
