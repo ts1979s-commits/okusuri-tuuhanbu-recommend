@@ -726,8 +726,7 @@ def main():
     st.markdown('<div class="sub-header"><i class="fas fa-search"></i> 商品検索・レコメンド</div>', unsafe_allow_html=True)
     
     # ご利用ガイドの設置
-    st.markdown('<div class="section-heading"><i class="fas fa-book-open"></i> ご利用ガイド</div>', unsafe_allow_html=True)
-    with st.expander("詳細を表示", expanded=False):
+    with st.expander("ご利用ガイド", expanded=False):
         st.markdown("""
         ### <i class="fas fa-star"></i> このシステムについて
         お薬通販部の商品から、あなたの症状や悩みに最適な医薬品をAIがレコメンドします。
@@ -761,8 +760,7 @@ def main():
         """, unsafe_allow_html=True)
     
     # 検索例を表示
-    st.markdown('<div class="section-heading"><i class="fas fa-lightbulb"></i> 検索例</div>', unsafe_allow_html=True)
-    with st.expander("検索例を見る", expanded=False):
+    with st.expander("検索例", expanded=False):
         st.write("**症状での検索例:**")
         st.write("- 抜け毛が増えた")
         st.write("- 足のむくみが取れない")
@@ -799,8 +797,7 @@ def main():
     # 検索設定をメインページに移動（デフォルト値を先に設定）
     max_results = 10  # デフォルト値
     
-    st.markdown('<div class="section-heading"><i class="fas fa-cog"></i> 検索設定</div>', unsafe_allow_html=True)
-    with st.expander("設定を変更", expanded=False):
+    with st.expander("検索設定", expanded=False):
         max_results = st.slider("最大結果数", 1, 20, 10, help="一度に表示する検索結果の件数を選択してください")
     
     # 検索フォーム
