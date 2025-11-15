@@ -54,8 +54,9 @@ except ImportError as e:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# スタイル設定（お薬通販部トーンマナー対応）
 st.markdown("""
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
     /* 検索結果数バッジ */
     .result-count-badge {
         display: inline-block;
@@ -69,8 +70,6 @@ st.markdown("""
         border: 1px solid #E0E0E0;
         letter-spacing: 0.5px;
     }
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
     /* お薬通販部ブランドカラーパレット */
     :root {
         --primary-color: #2E5BCE;
