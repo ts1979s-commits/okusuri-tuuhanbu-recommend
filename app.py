@@ -88,7 +88,8 @@ st.markdown("""
         font-size: 2.5rem;
         color: var(--primary-color);
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem; /* 2rem→1rem */
+        margin-top: 0.5rem; /* 追加: 上も詰める */
         font-weight: 600;
     }
     /* サブヘッダー（商品検索・レコメンド用） */
@@ -96,8 +97,8 @@ st.markdown("""
         font-size: 1.3rem;
         font-weight: bold;
         color: var(--text-color);
-        margin-bottom: 1rem;
-        margin-top: 0.5rem;
+        margin-bottom: 0.5rem; /* 1rem→0.5rem */
+        margin-top: 0.2rem;   /* 0.5rem→0.2rem */
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -224,8 +225,12 @@ st.markdown("""
     /* セクション見出しのサイズ調整 */
     .section-heading {
         font-size: 1.2rem !important;
-        margin-bottom: 0.5rem !important;
-        margin-top: 1rem !important;
+        margin-bottom: 0.2rem !important; /* 0.5rem→0.2rem */
+        margin-top: 0.5rem !important;    /* 1rem→0.5rem */
+    }
+    /* ファーストビュー改善: block-containerのpaddingを詰める */
+    .block-container {
+        padding-top: 0.5rem !important;
     }
     
     .section-heading i {
