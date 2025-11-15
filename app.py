@@ -778,37 +778,31 @@ def main():
     
     # ご利用ガイドの設置
     with st.expander("ご利用ガイド", expanded=False):
-        st.markdown("""
-        ### <i class="fas fa-star"></i> このシステムについて
-        お薬通販部の商品から、あなたの症状や悩みに最適な医薬品をAIがレコメンドします。
-        
-        ### <i class="fas fa-search"></i> 検索方法
-        **症状で検索:**
-        - 「抜け毛が増えた」「なかなか痩せない」など、具体的な症状を入力
-        - 「むくみ」「かゆみ」「ニキビ」など、気になる症状をそのまま入力
-        
-        **商品名で検索:**
-        - 「カマグラゴールド」「フィナクス」など、知っている商品名を入力
-        - 一部の名前でも検索可能です
-        
-        **有効成分で検索:**
-        - シルデナフィル
-        - ミノキシジル
-        - オルリスタット
-        - イソトレチノイン
-        
-        **カテゴリで検索:**
-        - 「ED治療薬」「AGA治療薬」「性病・感染症」など
-        
-        ### <i class="fas fa-exclamation-triangle"></i> ご注意事項
-        - このシステムは情報提供のみを目的としています
-        - 実際の使用前には必ず医師にご相談ください
-        - 処方薬については医師の指導に従ってください
-        
-        ### <i class="fas fa-lightbulb"></i> コツ
-        - 具体的で詳しい症状を入力すると、より精度の高い結果が得られます
-        - 複数の症状がある場合は、一緒に入力してください
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div style="font-size:1.1rem;font-weight:bold;margin-top:0.7em;margin-bottom:0.4em;"><i class="fas fa-star"></i> このシステムについて</div>'
+            'お薬通販部の商品から、あなたの症状や悩みに最適な医薬品をAIがレコメンドします。'
+            '<div style="font-size:1.1rem;font-weight:bold;margin-top:0.7em;margin-bottom:0.4em;"><i class="fas fa-search"></i> 検索方法</div>'
+            '<b>症状で検索:</b><br>'
+            '- 「抜け毛が増えた」「なかなか痩せない」など、具体的な症状を入力<br>'
+            '- 「むくみ」「かゆみ」「ニキビ」など、気になる症状をそのまま入力<br>'
+            '<b>商品名で検索:</b><br>'
+            '- 「カマグラゴールド」「フィナクス」など、知っている商品名を入力<br>'
+            '- 一部の名前でも検索可能です<br>'
+            '<b>有効成分で検索:</b><br>'
+            '- シルデナフィル<br>'
+            '- ミノキシジル<br>'
+            '- オルリスタット<br>'
+            '- イソトレチノイン<br>'
+            '<b>カテゴリで検索:</b><br>'
+            '- 「ED治療薬」「AGA治療薬」「性病・感染症」など<br>'
+            '<div style="font-size:1.1rem;font-weight:bold;margin-top:0.7em;margin-bottom:0.4em;"><i class="fas fa-exclamation-triangle"></i> ご注意事項</div>'
+            '- このシステムは情報提供のみを目的としています<br>'
+            '- 実際の使用前には必ず医師にご相談ください<br>'
+            '- 処方薬については医師の指導に従ってください<br>'
+            '<div style="font-size:1.1rem;font-weight:bold;margin-top:0.7em;margin-bottom:0.4em;"><i class="fas fa-lightbulb"></i> コツ</div>'
+            '- 具体的で詳しい症状を入力すると、より精度の高い結果が得られます<br>'
+            '- 複数の症状がある場合は、一緒に入力してください'
+            , unsafe_allow_html=True)
     
     # 検索例を表示
     with st.expander("検索例", expanded=False):
