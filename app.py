@@ -846,11 +846,9 @@ def main():
     
     # 検索設定をメインページに移動（デフォルト値を先に設定）
     max_results = 5  # デフォルト値
-    show_details = False  # デフォルト値
     
     with st.expander("⚙️ 検索設定", expanded=True):
         max_results = st.slider("最大結果数", 1, 20, 5, help="一度に表示する検索結果の件数を選択してください")
-        show_details = st.checkbox("詳細情報を表示", value=False, help="商品の詳細情報を追加で表示します")
     
     # 検索フォーム
     # クリア要求がある場合は空文字列、そうでなければセッション状態から取得
@@ -994,55 +992,6 @@ def main():
         # 検索結果の表示
         if results:
             st.markdown('### <i class="fas fa-pills"></i> おすすめ商品', unsafe_allow_html=True)
-            
-            # デバッグ情報（開発用）
-            if show_details:
-                with st.expander("🔧 デバッグ情報", expanded=False):
-                    st.write(f"**検索クエリ:** '{query}'")
-                    st.write(f"**結果数:** {len(results)}")
-                    
-                    # ベクトルデータベース強制再構築ボタン
-                    st.markdown("**🛠️ システム修復:**")
-                    if st.button("⚡ ベクトルDB強制再構築", help="検索精度に問題がある場合、ベクトルデータベースを最新のCSVから再構築", type="secondary"):
-                        try:
-                            with st.spinner("ベクトルデータベースを再構築中..."):
-                                # キャッシュされたファイルを削除
-                                import os
-                                files_to_remove = [
-                                    "./data/faiss_index.bin",
-                                    "./data/metadata.pkl", 
-                                    "./data/documents.pkl"
-                                ]
-                                for file_path in files_to_remove:
-                                    if os.path.exists(file_path):
-                                        os.remove(file_path)
-                                        st.write(f"✅ {file_path} を削除")
-                                
-                                # キャッシュクリア
-                                st.cache_data.clear()
-                                st.cache_resource.clear()
-                                
-                                # セッション状態をリセット
-                                for key in list(st.session_state.keys()):
-                                    if key not in ['search_input']:
-                                        del st.session_state[key]
-                                        
-                                st.success("✅ ベクトルデータベース再構築完了！次回検索時に最新データから自動構築されます。")
-                                st.info("🔄 ページをリロードして再検索してください")
-                                time.sleep(2)
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ 再構築エラー: {e}")
-                    
-                    if results:
-                        st.write("**最初の結果サンプル:**")
-                        first_result = results[0]
-                        st.json({
-                            "product_name": first_result.product_name,
-                            "category": first_result.category,
-                            "similarity_score": first_result.similarity_score,
-                            "metadata_sample": dict(list(first_result.metadata.items())[:5]) if first_result.metadata else {}
-                        })
             
             for i, result in enumerate(results):
                 display_search_result(result, i)
