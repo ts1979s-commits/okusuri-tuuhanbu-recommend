@@ -14,7 +14,7 @@ import traceback
 try:
     st.set_page_config(
         page_title="お薬通販部 商品レコメンド",
-        page_icon="💊",
+        page_icon="⚕️",
         layout="wide"
     )
 except st.errors.StreamlitAPIException:
@@ -244,7 +244,7 @@ st.markdown("""
 def initialize_recommendation_engine():
     """レコメンドエンジンを初期化（キャッシュ付き、エラー処理強化）"""
     if not FAISS_AVAILABLE:
-        st.warning("🔧 **FAISS機能が利用できません**")
+        st.warning('<i class="fas fa-wrench"></i> **FAISS機能が利用できません**', unsafe_allow_html=True)
         st.info("基本検索機能のみご利用いただけます。")
         return None
     
@@ -274,7 +274,7 @@ def initialize_recommendation_engine():
             pass  # ユーザーには表示しない
         else:
             # 重要なエラーのみ表示
-            st.error(f"❌ システム初期化エラー: {error_msg}")
+            st.error(f'<i class="fas fa-times-circle"></i> システム初期化エラー: {error_msg}', unsafe_allow_html=True)
             
             # 詳細なエラー情報
             with st.expander("🔧 エラー詳細", expanded=False):
@@ -660,11 +660,11 @@ def display_search_result(result, index: int):
 
 def display_system_status():
     """システム状態を表示"""
-    st.subheader("🔧 システム状態")
+    st.subheader('<i class="fas fa-wrench"></i> システム状態', unsafe_allow_html=True)
     
     try:
         # Streamlit Cloud環境では簡略化した状態を表示
-        st.success("✅ システムは正常に動作しています")
+        st.success('<i class="fas fa-check-circle"></i> システムは正常に動作しています', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -705,10 +705,10 @@ def main():
     # ご利用ガイドの設置
     with st.expander("📖 ご利用ガイド", expanded=False):
         st.markdown("""
-        ### 🌟 このシステムについて
+        ### <i class="fas fa-star"></i> このシステムについて
         お薬通販部の商品から、あなたの症状や悩みに最適な医薬品をAIがレコメンドします。
         
-        ### 🔍 検索方法
+        ### <i class="fas fa-search"></i> 検索方法
         **症状で検索:**
         - 「頭痛が治らない」「抜け毛が増えた」など、具体的な症状を入力
         - 「むくみ」「かゆみ」「ニキビ」など、気になる症状をそのまま入力
@@ -720,12 +720,12 @@ def main():
         **カテゴリで検索:**
         - 「ED治療薬」「AGA治療薬」「性病・感染症」など
         
-        ### ⚠️ ご注意事項
+        ### <i class="fas fa-exclamation-triangle"></i> ご注意事項
         - このシステムは情報提供のみを目的としています
         - 実際の使用前には必ず医師にご相談ください
         - 処方薬については医師の指導に従ってください
         
-        ### 💡 コツ
+        ### <i class="fas fa-lightbulb"></i> コツ
         - 具体的で詳しい症状を入力すると、より精度の高い結果が得られます
         - 複数の症状がある場合は、一緒に入力してください
         """)
@@ -799,7 +799,7 @@ def main():
                 del st.session_state[key]
             # クリア状態フラグを設定
             st.session_state['clear_requested'] = True
-            st.success("✅ 画面とキャッシュをクリアしました")
+            st.success('<i class="fas fa-check-circle"></i> 画面とキャッシュをクリアしました', unsafe_allow_html=True)
             time.sleep(0.5)
             st.rerun()
     
@@ -819,9 +819,9 @@ def main():
                         search_time = time.time() - start_time
                     
                     if results:
-                        st.success(f"✅ 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）")
+                        st.success(f'<i class="fas fa-check-circle"></i> 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）', unsafe_allow_html=True)
                     else:
-                        st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
+                        st.warning('<i class="fas fa-question-circle"></i> 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。', unsafe_allow_html=True)
                         
                 else:
                     with st.spinner("検索中..."):
@@ -839,7 +839,7 @@ def main():
                 st.session_state['current_max_results'] = max_results  # 検索時のmax_resultsも保存
                 
             except Exception as e:
-                st.error(f"❌ 検索中にエラーが発生しました: {e}")
+                st.error(f'<i class="fas fa-times-circle"></i> 検索中にエラーが発生しました: {e}', unsafe_allow_html=True)
                 logger.error(f"検索エラー: {e}")
         else:
             st.warning("検索クエリを入力してください。")
@@ -892,5 +892,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        st.error(f"❌ アプリケーション起動エラー: {str(e)}")
+        st.error(f'<i class="fas fa-times-circle"></i> アプリケーション起動エラー: {str(e)}', unsafe_allow_html=True)
         st.info("システムの基本機能のみで動作します")
