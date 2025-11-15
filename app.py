@@ -244,7 +244,7 @@ st.markdown("""
 def initialize_recommendation_engine():
     """レコメンドエンジンを初期化（キャッシュ付き、エラー処理強化）"""
     if not FAISS_AVAILABLE:
-        st.warning('<i class="fas fa-wrench"></i> **FAISS機能が利用できません**', unsafe_allow_html=True)
+        st.markdown('<div style="color: #FF9800; background-color: #FFF3E0; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #FF9800;"><i class="fas fa-wrench"></i> <strong>FAISS機能が利用できません</strong></div>', unsafe_allow_html=True)
         st.info("基本検索機能のみご利用いただけます。")
         return None
     
@@ -274,7 +274,7 @@ def initialize_recommendation_engine():
             pass  # ユーザーには表示しない
         else:
             # 重要なエラーのみ表示
-            st.error(f'<i class="fas fa-times-circle"></i> システム初期化エラー: {error_msg}', unsafe_allow_html=True)
+            st.markdown(f'<div style="color: #F44336; background-color: #FFEBEE; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #F44336;"><i class="fas fa-times-circle"></i> <strong>システム初期化エラー:</strong> {error_msg}</div>', unsafe_allow_html=True)
             
             # 詳細なエラー情報
             with st.expander("🔧 エラー詳細", expanded=False):
@@ -664,7 +664,7 @@ def display_system_status():
     
     try:
         # Streamlit Cloud環境では簡略化した状態を表示
-        st.success('<i class="fas fa-check-circle"></i> システムは正常に動作しています', unsafe_allow_html=True)
+        st.markdown('<div style="color: #4CAF50; background-color: #E8F5E8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #4CAF50;"><i class="fas fa-check-circle"></i> <strong>システムは正常に動作しています</strong></div>', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -799,7 +799,7 @@ def main():
                 del st.session_state[key]
             # クリア状態フラグを設定
             st.session_state['clear_requested'] = True
-            st.success('<i class="fas fa-check-circle"></i> 画面とキャッシュをクリアしました', unsafe_allow_html=True)
+            st.markdown('<div style="color: #4CAF50; background-color: #E8F5E8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #4CAF50;"><i class="fas fa-check-circle"></i> <strong>画面とキャッシュをクリアしました</strong></div>', unsafe_allow_html=True)
             time.sleep(0.5)
             st.rerun()
     
@@ -819,9 +819,9 @@ def main():
                         search_time = time.time() - start_time
                     
                     if results:
-                        st.success(f'<i class="fas fa-check-circle"></i> 検索完了！{len(results)}件の商品が見つかりました（{search_time:.2f}秒）', unsafe_allow_html=True)
+                        st.markdown(f'<div style="color: #4CAF50; background-color: #E8F5E8; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #4CAF50;"><i class="fas fa-check-circle"></i> <strong>検索完了！</strong>{len(results)}件の商品が見つかりました（{search_time:.2f}秒）</div>', unsafe_allow_html=True)
                     else:
-                        st.warning('<i class="fas fa-question-circle"></i> 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。', unsafe_allow_html=True)
+                        st.markdown('<div style="color: #FF9800; background-color: #FFF3E0; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #FF9800;"><i class="fas fa-question-circle"></i> 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。</div>', unsafe_allow_html=True)
                         
                 else:
                     with st.spinner("検索中..."):
@@ -839,7 +839,7 @@ def main():
                 st.session_state['current_max_results'] = max_results  # 検索時のmax_resultsも保存
                 
             except Exception as e:
-                st.error(f'<i class="fas fa-times-circle"></i> 検索中にエラーが発生しました: {e}', unsafe_allow_html=True)
+                st.markdown(f'<div style="color: #F44336; background-color: #FFEBEE; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #F44336;"><i class="fas fa-times-circle"></i> <strong>検索中にエラーが発生しました:</strong> {e}</div>', unsafe_allow_html=True)
                 logger.error(f"検索エラー: {e}")
         else:
             st.warning("検索クエリを入力してください。")
@@ -892,5 +892,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        st.error(f'<i class="fas fa-times-circle"></i> アプリケーション起動エラー: {str(e)}', unsafe_allow_html=True)
+        st.markdown(f'<div style="color: #F44336; background-color: #FFEBEE; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid #F44336;"><i class="fas fa-times-circle"></i> <strong>アプリケーション起動エラー:</strong> {str(e)}</div>', unsafe_allow_html=True)
         st.info("システムの基本機能のみで動作します")
