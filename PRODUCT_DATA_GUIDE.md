@@ -1,8 +1,10 @@
 # 商品データ取得・保存・検索システム 完全ガイド
 
+
 ## 🎯 要約・結論
 
 **実際のスクレイパー出力**から最適な保存スキーマとエクスポートコードを作成しました。
+※ FAISS/AI連携は現状「未使用/オプション」です。基本運用では利用していません。
 
 ### 📊 実際に取得できたデータ構造
 ```json
@@ -19,8 +21,7 @@
 - ✅ **スクレイパー出力確認**: 実際のお薬通販部サイトから商品データ取得
 - ✅ **データ正規化**: 生データを標準スキーマに変換
 - ✅ **多形式エクスポート**: JSON, NDJSON, CSV, SQLite対応
-- ✅ **FAISS連携**: 埋め込み検索システムと完全統合
-- ✅ **検索機能**: 自然言語クエリで商品検索（類似度スコア付き）
+- ⭕ **FAISS/AI連携（オプション）**: ベクトル検索・自然言語検索（現状は未使用/オプション）
 
 ---
 
@@ -76,23 +77,23 @@ print(df['category'].value_counts())
 ```python
 @dataclass
 class ProductSchema:
-    id: str                    # 一意識別子（ハッシュベース）
+    id: str                    # 一意識別子（URLまたはハッシュベース）
     name: str                  # 商品名
     url: str                   # 商品詳細URL
-    category: str              # カテゴリー（ED、AGA、便秘など）
+    category: str              # カテゴリー（ED治療薬、AGA治療薬など）
     category_url: str          # カテゴリーページURL
-    price: Optional[str]       # 価格
-    description: Optional[str] # 商品説明
-    short_description: Optional[str]  # 短い説明（検索用）
-    image_url: Optional[str]   # 画像URL
-    ingredients: Optional[str] # 有効成分
-    dosage: Optional[str]      # 用法・用量
-    manufacturer: Optional[str] # 製造会社
-    stock_status: Optional[str] # 在庫状況
-    tags: List[str]            # タグ（検索用）
-    scraped_at: str            # 取得日時（ISO8601）
-    source: str                # データソース
-    raw_data: Optional[Dict]   # 生データ（デバッグ用）
+    price: Optional[str] = None              # 価格
+    description: Optional[str] = None        # 商品説明
+    short_description: Optional[str] = None  # 短い説明（検索用）
+    image_url: Optional[str] = None          # 画像URL
+    ingredients: Optional[str] = None        # 有効成分
+    dosage: Optional[str] = None             # 用法・用量
+    manufacturer: Optional[str] = None       # 製造会社
+    stock_status: Optional[str] = None       # 在庫状況
+    tags: List[str] = None                   # タグ（検索用）
+    scraped_at: str = None                   # 取得日時（ISO8601）
+    source: str = "okusuritsuhan.shop"       # データソース
+    raw_data: Optional[Dict] = None          # 生データ（デバッグ用）
 ```
 
 ---
@@ -120,12 +121,13 @@ exporter.export_to_csv(products, "products.csv")          # 分析用
 exporter.export_to_sqlite(products, "products.db")        # クエリ用
 ```
 
-### 3. FAISS埋め込み → 検索システム
+### 3. FAISS/AI連携（オプション）
+※ 現状は未使用。今後の拡張用サンプルです。
 ```python
 from src.faiss_rag_system import FAISSRAGSystem
 
 rag = FAISSRAGSystem()
-rag.add_products([asdict(p) for p in products])  # 自動でembedding生成・保存
+rag.add_products([asdict(p) for p in products])  # embedding生成・保存
 
 # 検索実行
 results = rag.search_products("頭痛の薬", top_k=5)
@@ -153,9 +155,9 @@ for result in results:
 
 ## 💡 実運用のベストプラクティス
 
-### 差分更新スクリプト例
+### 差分更新スクリプト例（現状は手動更新のみ。定期自動化は未導入）
 ```python
-def daily_update():
+def manual_update():
     # 1. 新データ取得
     new_raw_data = scraper.scrape_products()
     
@@ -173,13 +175,13 @@ def daily_update():
     # 4. 新規があれば追加
     if new_products:
         exporter.export_to_ndjson(new_products, "new_products.ndjson")
-        rag.add_products([asdict(p) for p in new_products])
+        # rag.add_products([asdict(p) for p in new_products])  # FAISS/AI連携は現状未使用
         print(f"✅ {len(new_products)} 件の新商品を追加")
 ```
 
 ### バックアップ戦略
 ```bash
-# 毎日のバックアップ
+# 必要に応じて手動でバックアップ
 zip -r backup_$(date +%Y%m%d).zip data/
 ```
 
@@ -204,7 +206,7 @@ print(pd.Series(all_tags).value_counts().head(10))
 ## 🚀 次のステップ
 
 1. **個別商品詳細の取得拡張**: 価格、成分、用法用量の詳細スクレイピング
-2. **定期実行スケジュール**: cron/Task Schedulerでの自動化
+2. **定期実行スケジュール**: cron/Task Schedulerでの自動化（現状は未導入）
 3. **データ品質監視**: 商品数・カテゴリー数の監視アラート
 4. **API化**: FastAPIでの検索エンドポイント提供
 5. **分析ダッシュボード**: Streamlit/Grafanaでの可視化
