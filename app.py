@@ -943,7 +943,6 @@ def main():
                 display_search_result(result, i)
         else:
             st.warning("🤔 該当する商品が見つかりませんでした。別のキーワードで検索してみてください。")
-            st.info("💡 まず商品データを取得する必要がある可能性があります。サイドバーの「商品データ取得」をお試しください。")
     
     # フッター
     st.markdown("---")
