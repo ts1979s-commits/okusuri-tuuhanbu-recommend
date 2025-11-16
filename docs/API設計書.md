@@ -1,8 +1,11 @@
-# API設計書 - 商品レコメンドLLMアプリ
+# API設計書 - お薬通販部商品レコメンドAI
 
 ## 📋 **API概要**
 
-本アプリケーションは主にStreamlitのUIベースですが、内部的に以下のAPI構造を持ちます。
+本アプリケーションは主にStreamlitのWeb UIを中心に動作します。
+内部的には下記のAPI構造を持ちますが、FAISS/AI連携は現状「未使用/オプション」です。
+
+---
 
 ## 🔍 **検索API仕様**
 
@@ -124,54 +127,18 @@ def get_categories():
     return categories
 ```
 
-## ⚡ **FAISS検索API（オプション）**
+## ⚡ **FAISS/AI検索API（オプション/拡張用）**
 
-### 5. FAISS初期化API
+- FAISS/AI連携は現状未使用・オプションです。今後の拡張用サンプルとして記載しています。
 
 #### `setup_rag_system() -> Optional[FAISSRAGSystem]`
-
-**概要**: FAISS検索システムを初期化
-
-**戻り値**:
-```python
-Optional[FAISSRAGSystem]    # FAISS検索システムインスタンス
-```
-
-**実装例**:
-```python
-def setup_rag_system():
-    try:
-        rag_system = FAISSRAGSystem()
-        # キャッシュから読み込み or 新規構築
-        return rag_system
-    except Exception as e:
-        st.warning(f"FAISS初期化失敗: {e}")
-        return None
-```
-
-### 6. FAISS検索API
-
 #### `faiss_search(rag_system: FAISSRAGSystem, query: str, k: int = 5) -> List[Dict]`
 
-**概要**: ベクトル検索による類似商品検索
-
-**パラメータ**:
-```python
-rag_system: FAISSRAGSystem    # FAISSシステムインスタンス
-query: str                    # 検索クエリ
-k: int                       # 取得件数（デフォルト: 5）
-```
-
-**戻り値**:
-```python
-List[Dict]    # 検索結果リスト（商品辞書の配列）
-```
+---
 
 ## 📊 **データ形式仕様**
 
-### 7. 商品データ形式
-
-#### Product Schema
+### 商品データ形式（例）
 ```python
 {
     "商品名": str,      # 商品名（必須）
@@ -183,35 +150,11 @@ List[Dict]    # 検索結果リスト（商品辞書の配列）
 }
 ```
 
-#### カテゴリ一覧
-```python
-CATEGORIES = [
-    "ED治療薬",
-    "EDサプリ",
-    "媚薬",
-    "AGA治療薬",
-    "ダイエット",
-    "美容・スキンケア",
-    "性病・感染症の治療薬"
-]
-```
-
-### 8. 検索結果形式
-
-#### SearchResult Schema
-```python
-{
-    "total_count": int,           # 総検索結果数
-    "results": List[Product],     # 商品リスト
-    "search_type": str,           # 検索タイプ
-    "query": str,                 # 検索クエリ
-    "execution_time": float       # 実行時間（秒）
-}
-```
+---
 
 ## 🔧 **内部ユーティリティAPI**
 
-### 9. 入力検証API
+### 入力検証API
 
 #### `validate_input(query: str) -> bool`
 
@@ -246,7 +189,7 @@ def validate_input(query):
     return True
 ```
 
-### 10. 重複除去API
+### 重複除去API
 
 #### `remove_duplicates(df: pd.DataFrame) -> pd.DataFrame`
 
@@ -270,7 +213,7 @@ def remove_duplicates(df):
 
 ## ⚙️ **設定管理API**
 
-### 11. 設定取得API
+### 設定取得API
 
 #### `get_config() -> Dict`
 
@@ -292,7 +235,7 @@ Dict    # 設定辞書
 }
 ```
 
-### 12. supplement_mapping取得API
+### supplement_mapping取得API
 
 #### `get_supplement_mapping() -> Dict[str, str]`
 
@@ -313,9 +256,7 @@ Dict[str, str]    # サプリメントマッピング
 
 ## 🛡️ **エラーハンドリング仕様**
 
-### 13. エラーレスポンス形式
-
-#### ErrorResponse Schema
+### エラーレスポンス形式（例）
 ```python
 {
     "error": bool,              # エラーフラグ
@@ -325,7 +266,7 @@ Dict[str, str]    # サプリメントマッピング
 }
 ```
 
-#### エラーコード一覧
+**エラーコード一覧**:
 ```python
 ERROR_CODES = {
     "DATA_NOT_FOUND": "データファイルが見つかりません",
@@ -336,27 +277,13 @@ ERROR_CODES = {
 }
 ```
 
-## 📊 **パフォーマンス仕様**
+---
 
-### 14. レスポンス時間目標
-```python
-PERFORMANCE_TARGETS = {
-    "basic_search": "< 100ms",      # 基本検索
-    "category_search": "< 50ms",    # カテゴリ検索
-    "faiss_search": "< 200ms",      # FAISS検索
-    "data_load": "< 500ms"          # データロード
-}
-```
+## 📊 **パフォーマンス・制限値（目安）**
 
-### 15. 制限値
-```python
-LIMITS = {
-    "max_query_length": 100,        # 最大クエリ長
-    "max_results": 50,              # 最大結果数
-    "timeout": 30,                  # タイムアウト（秒）
-    "max_concurrent_users": 100     # 最大同時ユーザー数
-}
-```
+- レスポンス時間目標や制限値は現状未設定。今後の運用・拡張で調整予定。
+
+---
 
 ## 🔄 **API使用例**
 
@@ -389,6 +316,8 @@ results = category_search(selected)
 print(f"検索結果: {len(results)}件")
 ```
 
+---
+
 ## 📝 **API変更履歴**
 
 ### v1.0.0 (2025/11/11)
@@ -396,4 +325,4 @@ print(f"検索結果: {len(results)}件")
 - カテゴリ検索API実装
 - supplement_mapping対応
 - 重複除去機能追加
-- FAISS検索API実装（オプション）
+- FAISS検索API実装（オプション/拡張用）
